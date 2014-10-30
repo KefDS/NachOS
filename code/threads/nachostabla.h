@@ -17,6 +17,8 @@ public:
     void delThread();		// If a user thread is using this table, delete it
     int getUsage();		//devuelve cuantos hilos hay en la tabla
 
+    NachosOpenFilesTable& operator=(const NachosOpenFilesTable& tablaOriginal); //para copiar NachosOpenFilesTable's
+
     void Print();               // Print contents
     
 private:

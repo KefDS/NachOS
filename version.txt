@@ -1,5 +1,3 @@
-Version 0.3
+Version 0.4
 
-Version la cual tiene la mayoria de Sys calls
-
-Ejemplo
+Se sobrecargó el operador "=" para NachosOpenFilesTable
