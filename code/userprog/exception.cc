@@ -89,7 +89,7 @@ void Nachos_Halt(){         //System call #0
     interrupt->Halt();
 }//Nachos_Halt
 
-void Copy_Mem(int registro){
+void Copy_Mem(int registro){    //Pasa lo que hay en el registro a un String
     int carac = 1;
     int direccion = machine->ReadRegister(registro);
     for(int j = 0; carac != VACIO; ++j){
@@ -100,6 +100,7 @@ void Copy_Mem(int registro){
 
 void Nachos_Exit(){     //System call # 1
 
+    DEBUG('a', "Entering Exit");
     int idProc = machine->ReadRegister(4);
     currentThread->Yield();
     currentThread->tablaProcesos->delThread();
@@ -111,7 +112,7 @@ void Nachos_Exit(){     //System call # 1
         currentThread->space = NULL;
     }
 
-    //tengo que quitar los semaforos que yo como proceso habia creado
+    //tengo que liberar los semaforos que yo como proceso habia creado
     while(VACIO != currentThread->tablaSemaforos->getUsage()){
         Semaphore* semaforo = (Semaphore*)currentThread->tablaSemaforos->getUnixHandle(idProc);
         currentThread->tablaSemaforos->delThread();
@@ -120,6 +121,8 @@ void Nachos_Exit(){     //System call # 1
 
     currentThread->Finish();    //termina el proceso
     returnFromSystemCall();
+    DEBUG('a', "Exiting Exit");
+
 }//Nachos_Exit
 
 void Nachos_Exec(){     //System call # 2
@@ -131,7 +134,7 @@ void Nachos_Join(){     //System call # 3
 }//Nachos_Join
 
 void Nachos_Create(){   //System call # 4
-
+    DEBUG('a', "Entering Create.\n");
     Copy_Mem(4);
     int idFileUnix = creat(buffer, S_IRWXU|S_IRWXO|S_IRWXG); //S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
     //S_IRWXO->otros tienen permiso de escritura, lectura y ejecucion
@@ -142,10 +145,13 @@ void Nachos_Create(){   //System call # 4
     DEBUG('a', "File created on Nachos with id: %d", idFileNachos);
     machine->WriteRegister(2, idFileNachos);
     returnFromSystemCall();
+        DEBUG('a', "Exiting Create.\n");
 
 }//Nachos_Create
 
 void Nachos_Open() {    // System call # 5
+
+    DEBUG('a', "Entering Open.\n");
     int rutaVirtual = machine->ReadRegister(4);
     int rutaFisica;
     char bufferNombre[20];
@@ -174,6 +180,7 @@ void Nachos_Open() {    // System call # 5
         idFileNachos = ERROR;
         machine->WriteRegister(2, idFileNachos);
     }
+    DEBUG('a', "Exiting Open\n");
 }// Nachos_Open
 
 void Nachos_Read(){     //System call # 6
@@ -215,10 +222,13 @@ void Nachos_Write() {   // System call 7
         }
     }
     returnFromSystemCall(); // Update the PC registers
+    DEBUG('a', "Exiting Write System Call.\n");
 } // Nachos_Write
 
 
 void Nachos_Close(){        //System call # 8
+
+    DEBUG('a', "Entering Close System Call.\n");
     int resultado = ERROR;
     int idHilo = machine->ReadRegister(6);
     int idCierra = currentThread->tablaFiles->Close(idHilo);
@@ -231,6 +241,8 @@ void Nachos_Close(){        //System call # 8
     }
     machine->WriteRegister(2, resultado);
     returnFromSystemCall();
+    DEBUG('a', "Exiting Close System Call.\n");
+
 }//Nachos_Close
 
 void AyudanteFork(void* vo){       //Metodo auxiliar que usa Fork
@@ -248,7 +260,8 @@ void AyudanteFork(void* vo){       //Metodo auxiliar que usa Fork
 }
 
 void Nachos_Fork(){     //System call # 9
-    DEBUG('u', "Entering Fork System call");
+
+    DEBUG('a', "Entering Fork System call\n");
 
     Thread *nuevoHilo = new Thread("Hijo");     //proceso hijo
     nuevoHilo->tablaFiles = currentThread->tablaFiles;  //NachosOpenFilesTable tiene sobrecargado el operador = entonces no hay bronca :D
@@ -256,11 +269,12 @@ void Nachos_Fork(){     //System call # 9
     currentThread->tablaFiles->addThread();
     currentThread->tablaProcesos->addThread();
     nuevoHilo->space = new AddrSpace(currentThread->space);
+    DEBUG('a', "Calls ForkHelper.\n");
     nuevoHilo->Fork(AyudanteFork, (void*)machine->ReadRegister(4));
 
     returnFromSystemCall();
 
-    DEBUG( 'u', "Exiting Fork System call" );
+    DEBUG( 'a', "Exiting Fork System call\n" );
 
 }//Kernel_Fork
 
@@ -269,10 +283,13 @@ void Nachos_Yield(){                //System call # 10
     DEBUG('a', "Yield, returns control to the CPU.\n");
     currentThread->Yield();
     returnFromSystemCall();
+    DEBUG('a', "Exiting Yield.\n");
 
 }//Nachos_Yield
 
 void Nachos_SemCreate(){    //System call # 11
+
+    DEBUG('a', "Entering SemCreate.\n");
 
     int valSem = machine->ReadRegister(4);      //lee del registro de MIPS
     Semaphore* semaforo = new Semaphore("Semaforo nuevo", valSem);   //crea el semaforo de NachOS
@@ -281,34 +298,47 @@ void Nachos_SemCreate(){    //System call # 11
 
     machine->WriteRegister(2, idSem);      //retorna el el id del semaforo creado como parametro
     returnFromSystemCall();
+    DEBUG('a', "Exiting SemCreate. \n");
 
 }//Nachos_SemCreate
 
 void Nachos_SemDestroy(){   //System call # 12
+
+    DEBUG('a', "Entering SemDestroy.\n");
     int idSem = machine->ReadRegister(4);      //lee el parametro
     Semaphore* semaforo = (Semaphore*)currentThread->tablaFiles->getUnixHandle(idSem);
     currentThread->tablaFiles->Close(idSem);
     currentThread->tablaFiles->delThread();
     semaforo->Destroy();
     returnFromSystemCall();
+    DEBUG('a', "Exiting SemDestroy.\n");
+
 }//Nachos_SemDestroy
 
 //Usa la clase Semaphore
 //llama a V() de esa clase
 void Nachos_SemSignal(){    //System call # 13
+
+    DEBUG('a', "Entering SemSignal.\n");
     int idSem = machine->ReadRegister(4);
     Semaphore* semaforo = (Semaphore*)currentThread->tablaFiles->getUnixHandle(idSem);
     semaforo->V();
     returnFromSystemCall();
+    DEBUG('a', "Exiting SemSignal.\n");
+
 }//Nachos_SemSignal
 
 //Analogo a signal
 //pero usa P()
 void Nachos_SemWait(){      //System call # 14
+
+    DEBUG('a', "Entering SemWait.\n");
     int idSem = machine->ReadRegister(4);
     Semaphore* semaforo = (Semaphore*)currentThread->tablaFiles->getUnixHandle(idSem);
     semaforo->P();
     returnFromSystemCall();
+    DEBUG('a', "Exiting SemWait.\n");
+
 }//Nachos_SemWait
 
 void ExceptionHandler(ExceptionType which){

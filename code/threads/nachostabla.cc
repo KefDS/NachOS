@@ -93,7 +93,7 @@ int NachosOpenFilesTable::getUsage(){
 void NachosOpenFilesTable::Print(){
     printf("The table contains:\n");
 
-    for(int i=2; i<usage; ++i){
-        printf("%d --> %d", i, openFiles[i]);
+    for(int i=3; i<TAM_VECTOR; ++i){
+        printf("%d --> %d\n", i, openFiles[i]);
     }
 }

@@ -4,4 +4,5 @@ Se implemento Nachos_Create
 
 Version 0.6
 
-Se arreglo el constructor de AddrSpace  
+Se arreglo el constructor de AddrSpace 
+Se agregaron comentarios de Debug a cada metodo para avisar cuando entran. 
