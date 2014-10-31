@@ -364,11 +364,11 @@ void ExceptionHandler(ExceptionType which){
     case SyscallException:
         switch ( type ) {
         case SC_Halt:
-            Nachos_Halt();             // System call # 0
+            Nachos_Halt();              // System call # 0
             returnFromSystemCall();
             break;
         case SC_Exit:
-            Nachos_Exit();
+            Nachos_Exit();              //System call # 1
             break;
         case SC_Exec:
             //Nachos_Exec();
@@ -376,12 +376,10 @@ void ExceptionHandler(ExceptionType which){
             ASSERT(false);
             break;
         case SC_Join:
-            //Nachos_Join();
-            printf("No se ha implementado Join\n");
-            ASSERT(false);
+            Nachos_Join();              //System call # 3
             break;
         case SC_Create:
-            Nachos_Create();
+            Nachos_Create();            //System call # 4
             break;
         case SC_Open:
             Nachos_Open();             // System call # 5
@@ -417,13 +415,13 @@ void ExceptionHandler(ExceptionType which){
             Nachos_SemWait();
             break;
         default:
-            printf( "Segundo switch-> Unexpected exception %d\n", which );
+            printf( "Second switch-> Unexpected exception %d\n", which );
             ASSERT(false);
             break;
         }
         break;
     default:
-        printf( "Primer switch -> Unexpected exception %d\n", which );
+        printf( "First switch -> Unexpected exception %d\n", which );
         ASSERT(false);
         break;
     }
