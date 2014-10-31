@@ -415,13 +415,13 @@ void ExceptionHandler(ExceptionType which){
             Nachos_SemWait();
             break;
         default:
-            printf( "Second switch-> Unexpected exception %d\n", which );
+            printf( "Second switch-> unexpected exception %d\n", which );
             ASSERT(false);
             break;
         }
         break;
     default:
-        printf( "First switch -> Unexpected exception %d\n", which );
+        printf( "First switch -> unexpected exception %d\n", which );
         ASSERT(false);
         break;
     }
