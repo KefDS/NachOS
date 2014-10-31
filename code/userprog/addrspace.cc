@@ -38,16 +38,16 @@
 
 static void
 SwapHeader (NoffHeader* noffH) {
-	noffH->noffMagic = WordToHost(noffH->noffMagic);
-	noffH->code.size = WordToHost(noffH->code.size);
-	noffH->code.virtualAddr = WordToHost(noffH->code.virtualAddr);
-	noffH->code.inFileAddr = WordToHost(noffH->code.inFileAddr);
-	noffH->initData.size = WordToHost(noffH->initData.size);
-	noffH->initData.virtualAddr = WordToHost(noffH->initData.virtualAddr);
-	noffH->initData.inFileAddr = WordToHost(noffH->initData.inFileAddr);
-	noffH->uninitData.size = WordToHost(noffH->uninitData.size);
-	noffH->uninitData.virtualAddr = WordToHost(noffH->uninitData.virtualAddr);
-	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
+    noffH->noffMagic = WordToHost(noffH->noffMagic);
+    noffH->code.size = WordToHost(noffH->code.size);
+    noffH->code.virtualAddr = WordToHost(noffH->code.virtualAddr);
+    noffH->code.inFileAddr = WordToHost(noffH->code.inFileAddr);
+    noffH->initData.size = WordToHost(noffH->initData.size);
+    noffH->initData.virtualAddr = WordToHost(noffH->initData.virtualAddr);
+    noffH->initData.inFileAddr = WordToHost(noffH->initData.inFileAddr);
+    noffH->uninitData.size = WordToHost(noffH->uninitData.size);
+    noffH->uninitData.virtualAddr = WordToHost(noffH->uninitData.virtualAddr);
+    noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
 }
 
 //----------------------------------------------------------------------
@@ -65,82 +65,80 @@ SwapHeader (NoffHeader* noffH) {
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 AddrSpace::AddrSpace(OpenFile* executable) {
-	NoffHeader noffH;
+    NoffHeader noffH;
 
-	executable->ReadAt( (char *)&noffH, sizeof(noffH), 0 );
-	if ((noffH.noffMagic != NOFFMAGIC) &&
-			(WordToHost(noffH.noffMagic) == NOFFMAGIC))
-		SwapHeader(&noffH);
-	ASSERT(noffH.noffMagic == NOFFMAGIC);
+    executable->ReadAt( (char *)&noffH, sizeof(noffH), 0 );
+    if ((noffH.noffMagic != NOFFMAGIC) &&
+(WordToHost(noffH.noffMagic) == NOFFMAGIC))
+        SwapHeader(&noffH);
+    ASSERT(noffH.noffMagic == NOFFMAGIC);
 
-	// how big is address space?
-	unsigned int size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;
-	// to leave room for the stack
-	numPages = divRoundUp(size, PageSize);
-	size = numPages * PageSize;
+    // how big is address space?
+    unsigned int size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;
+    // to leave room for the stack
+    numPages = divRoundUp(size, PageSize);
+    size = numPages * PageSize;
 
-	ASSERT(numPages <= NumPhysPages);		// check we're not trying
-	// to run anything too big --
-	// at least until we have
-	// virtual memory
+    ASSERT(numPages <= NumPhysPages);		// check we're not trying
+    // to run anything too big --
+    // at least until we have
+    // virtual memory
 
-	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+    DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
 
-	// first, set up the translation
-	pageTable = new TranslationEntry[numPages];
+    // first, set up the translation
+    pageTable = new TranslationEntry[numPages];
 
-	for (unsigned int i = 0; i < numPages; i++) {
-		pageTable[i].virtualPage = i;
-		pageTable[i].physicalPage = MiMapa->Find(); // Buscará en la memoria física, páginas disponibles
-		pageTable[i].valid = true;
-		pageTable[i].use = false;
-		pageTable[i].dirty = false;
-		pageTable[i].readOnly = false;  // if the code segment was entirely on
-		// a separate page, we could set its
-		// pages to be read-only
-	}
+    for (unsigned int i = 0; i < numPages; i++) {
+        pageTable[i].virtualPage = i;
+        pageTable[i].physicalPage = MiMapa->Find(); // Buscará en la memoria física, páginas disponibles
+        pageTable[i].valid = true;
+        pageTable[i].use = false;
+        pageTable[i].dirty = false;
+        pageTable[i].readOnly = false;  // if the code segment was entirely on
+        // a separate page, we could set its
+        // pages to be read-only
+    }
 
-    DEBUG('a', "Code Segment asignation.\n");
-	int cantUsadaCodeSeg = divRoundUp(noffH.code.size, PageSize);
-	if (noffH.code.size > 0) {
-		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (CS)
-		for(unsigned int i = 0; i < cantUsadaCodeSeg; ++i) {
-			int pagina = pageTable[i].physicalPage;
-			DEBUG('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", i, PageSize*i, noffH.code.inFileAddr);
-			executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i+noffH.code.inFileAddr) );
-		}
-	}
+    DEBUG('n', "Code Segment asignation.\n");
+    int cantUsadaCodeSeg = divRoundUp(noffH.code.size, PageSize);
+    if (noffH.code.size > 0) {
+        // Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (CS)
+        for(unsigned int i = 0; i < cantUsadaCodeSeg; ++i) {
+            int pagina = pageTable[i].physicalPage;
+            DEBUG('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", i, PageSize*i, noffH.code.inFileAddr);
+            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i+noffH.code.inFileAddr) );
+        }
+    }
 
-    DEBUG('a', "Used Data Segment asignation.\n");
-	int cantUsadaDataSeg = divRoundUp(noffH.initData.size, PageSize);
-	if (noffH.initData.size > 0) {
-		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (DS)
+    DEBUG('n', "Used Data Segment asignation.\n");
+    int cantUsadaDataSeg = divRoundUp(noffH.initData.size, PageSize);
+    if (noffH.initData.size > 0) {
+        // Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (DS)
         for(unsigned int i = cantUsadaCodeSeg; i < cantUsadaDataSeg; ++i) {
-			int pagina = pageTable[i].physicalPage;
-			DEBUG('a', "Page number: %i, Used bytes: %i\n", i, PageSize*i);
-			executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.initData.inFileAddr) );
-		}
-	}
+            int pagina = pageTable[i].physicalPage;
+            DEBUG('a', "Page number: %i, Used bytes: %i\n", i, PageSize*i);
+            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.initData.inFileAddr) );
+        }
+    }
 
-    DEBUG('a', "Unused Data Segment asignation.\n");
+    DEBUG('n', "Unused Data Segment asignation.\n");
     int cantUsadaDataUniSeg = divRoundUp(noffH.uninitData.size, PageSize);
     if(noffH.uninitData.size>0){
         //Tomará cada págian virtual del ejecutable, obtendrá la dirección física y se la asignará al ejecutable (Datos sin inicializar)
         for(unsigned int i= cantUsadaDataSeg; i<cantUsadaDataUniSeg; ++i){
             int pagina = pageTable[i].physicalPage;
-            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.uninitData.inFileAddr));
+            bzero(&(machine->mainMemory[pagina*PageSize]), PageSize);
         }
     }
-
-    DEBUG('a', "Stack Segment asignation.\n");
+/*
+    DEBUG('n', "Stack Segment asignation.\n");
     //int cantUsadaPila = divRoundUp(UserStackSize, PageSize);
-    if(UserStackSize>0){
-        //Asigna la parte de memoria correspondiente a la pila
-        for(unsigned int i=cantUsadaDataUniSeg; i<numPages; ++i){
-            int pagina = pageTable[i].physicalPage;
-            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i+noffH.uninitData.inFileAddr+cantUsadaDataUniSeg));
-        }
-    }
+    //Asigna la parte de memoria correspondiente a la pila
+    for(unsigned int i=cantUsadaDataUniSeg; i<numPages; ++i){
+        int pagina = pageTable[i].physicalPage;
+        bzero(&(machine->mainMemory[pagina*PageSize]), PageSize);
+    }*/
 }
 
 //----------------------------------------------------------------------
@@ -148,24 +146,24 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 // Hace que papa e hijo compartan datos y codigo pero le hace una nueva pila al hijo
 //----------------------------------------------------------------------
 AddrSpace::AddrSpace(AddrSpace* espacioPadre){
-	int tamPila = divRoundUp(UserStackSize, PageSize);
-	numPages = espacioPadre->numPages;
-	ASSERT(numPages <= (unsigned int)MiMapa->NumClear());
-	pageTable = new TranslationEntry[numPages];
-	for(unsigned int i = 0; i < numPages; ++i) {
-		pageTable[i].virtualPage = i; // Como es virtual es lineal (0,1,2,3...)
-		if(i < numPages-tamPila) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
-			pageTable[i].physicalPage = espacioPadre->pageTable[i].physicalPage; // Comparten los mismas páginas
-		}
-		else {
-			pageTable[i].physicalPage = MiMapa->Find(); // Busca espacio libre para asignar el espacio de pila
-			bzero(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize);
-		}
-		pageTable[i].valid = true;
-		pageTable[i].use = false;
-		pageTable[i].dirty = false;
-		pageTable[i].readOnly = false;
-	}
+    int tamPila = divRoundUp(UserStackSize, PageSize);
+    numPages = espacioPadre->numPages;
+    ASSERT(numPages <= (unsigned int)MiMapa->NumClear());
+    pageTable = new TranslationEntry[numPages];
+    for(unsigned int i = 0; i < numPages; ++i) {
+        pageTable[i].virtualPage = i; // Como es virtual es lineal (0,1,2,3...)
+        if(i < numPages-tamPila) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
+            pageTable[i].physicalPage = espacioPadre->pageTable[i].physicalPage; // Comparten los mismas páginas
+        }
+        else {
+            pageTable[i].physicalPage = MiMapa->Find(); // Busca espacio libre para asignar el espacio de pila
+            bzero(&(machine->mainMemory[pageTable[i].physicalPage*PageSize]), PageSize);
+        }
+        pageTable[i].valid = true;
+        pageTable[i].use = false;
+        pageTable[i].dirty = false;
+        pageTable[i].readOnly = false;
+    }
 }
 
 //----------------------------------------------------------------------
@@ -174,7 +172,7 @@ AddrSpace::AddrSpace(AddrSpace* espacioPadre){
 //----------------------------------------------------------------------
 
 AddrSpace::~AddrSpace() {
-	delete pageTable;
+    delete pageTable;
 }
 
 //----------------------------------------------------------------------
@@ -188,23 +186,23 @@ AddrSpace::~AddrSpace() {
 //----------------------------------------------------------------------
 
 void AddrSpace::InitRegisters(){
-	int i;
+    int i;
 
-	for (i = 0; i < NumTotalRegs; i++)
-		machine->WriteRegister(i, 0);
+    for (i = 0; i < NumTotalRegs; i++)
+        machine->WriteRegister(i, 0);
 
-	// Initial program counter -- must be location of "Start"
-	machine->WriteRegister(PCReg, 0);
+    // Initial program counter -- must be location of "Start"
+    machine->WriteRegister(PCReg, 0);
 
-	// Need to also tell MIPS where next instruction is, because
-	// of branch delay possibility
-	machine->WriteRegister(NextPCReg, 4);
+    // Need to also tell MIPS where next instruction is, because
+    // of branch delay possibility
+    machine->WriteRegister(NextPCReg, 4);
 
-	// Set the stack register to the end of the address space, where we
-	// allocated the stack; but subtract off a bit, to make sure we don't
-	// accidentally reference off the end!
-	machine->WriteRegister(StackReg, numPages * PageSize - 16);
-	DEBUG('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
+    // Set the stack register to the end of the address space, where we
+    // allocated the stack; but subtract off a bit, to make sure we don't
+    // accidentally reference off the end!
+    machine->WriteRegister(StackReg, numPages * PageSize - 16);
+    DEBUG('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
 }
 
 //----------------------------------------------------------------------
@@ -228,6 +226,6 @@ void AddrSpace::SaveState()
 
 void AddrSpace::RestoreState()
 {
-	machine->pageTable = pageTable;
-	machine->pageTableSize = numPages;
+    machine->pageTable = pageTable;
+    machine->pageTableSize = numPages;
 }

@@ -155,6 +155,7 @@ void Nachos_Create(){   //System call # 4
     //S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
     //S_IRWXO->otros tienen permiso de escritura, lectura y ejecucion
     //S_IRWXG->el grupo tiene permiso de escritura, lectura y ejecucion
+
     DEBUG('a', "File created on UNIX with id: %d\n", idFileUnix);
     int idFileNachos = currentThread->tablaFiles->Open(idFileUnix);
     currentThread->tablaFiles->addThread();
@@ -170,7 +171,7 @@ void Nachos_Open() {    // System call # 5
     DEBUG('a', "Entering Open.\n");
     int rutaVirtual = machine->ReadRegister(4);
     int rutaFisica;
-    char bufferNombre[20];
+    char bufferNombre[TAMBUFFER];
     int i=0;
     bool seguir = true;
     do{
@@ -187,16 +188,17 @@ void Nachos_Open() {    // System call # 5
 
     printf("File name %s opened.\n", bufferNombre);
 
-    OpenFileId idFile = open(bufferNombre, O_RDWR);
-    int idFileNachos;
-    if(idFile != ERROR){
-        idFileNachos = currentThread->tablaFiles->Open(idFile);
+    OpenFileId idFileUnix = open(bufferNombre, O_RDWR);
+
+    if(idFileUnix != ERROR){
+        int idFileNachos = currentThread->tablaFiles->Open(idFileUnix);
         machine->WriteRegister(2, idFileNachos);
     }else{
-        idFileNachos = ERROR;
-        machine->WriteRegister(2, idFileNachos);
+        printf("ERROR: File doesn't exist.\n");
+        machine->WriteRegister(2, ERROR);
     }
-    DEBUG('a', "Exiting Open\n");
+    returnFromSystemCall();
+    DEBUG('a', "Exiting Open.\n");
 }// Nachos_Open
 
 void Nachos_Read(){     //System call # 6
@@ -226,8 +228,9 @@ void Nachos_Read(){     //System call # 6
         //lectura de archivos
         if( currentThread->tablaFiles->isOpened(idFileNachOS) ){//esta abierto?
             DEBUG('n', "Entro a read de UNIX.\n");
-            cant = read( currentThread->tablaFiles->getUnixHandle(idFileNachOS), buffer, tama );  //lee con el read de UNIX
-            DEBUG('n', "Sali del read de UNIX.\n");
+            int idUnix = currentThread->tablaFiles->getUnixHandle(idFileNachOS);
+            cant = read( idUnix, buffer, tama );  //lee con el read de UNIX
+            DEBUG('n', "Sale del read de UNIX.\n");
             machine->WriteRegister(2, cant);
             stats->numDiskReads++;
         }else{
@@ -283,21 +286,20 @@ void Nachos_Write() {   // System call 7
 
 } // Nachos_Write
 
-
 void Nachos_Close(){        //System call # 8
 
     DEBUG('a', "Entering Close System Call.\n");
-    int resultado = ERROR;
     int idHilo = machine->ReadRegister(6);
-    int idCierra = currentThread->tablaFiles->Close(idHilo);
-    if(idCierra != ERROR){  //quito bien el archivo de la tabla?
-        resultado = close(currentThread->tablaFiles->getUnixHandle(idHilo));//borrelo desde Unix
+    if( currentThread->tablaFiles->isOpened(idHilo) ){
+        int idUnix = currentThread->tablaFiles->getUnixHandle(idHilo);
+        int tmp = currentThread->tablaFiles->Close(idHilo);
+        tmp = close(idUnix);
         printf("File closed.\n");
-        currentThread->tablaFiles->delThread();
+        machine->WriteRegister(2, tmp);
     }else{
-        printf("No se pudo cerrar bien el archivo\n");
+        printf("ERROR: Atempt to close a file that isn't opened.\n");
+        machine->WriteRegister(2, ERROR);
     }
-    machine->WriteRegister(2, resultado);
     returnFromSystemCall();
     DEBUG('a', "Exiting Close System Call.\n");
 
@@ -430,7 +432,6 @@ void ExceptionHandler(ExceptionType which){
             break;
         case SC_Open:
             Nachos_Open();             // System call # 5
-            returnFromSystemCall();
             break;
         case SC_Read:
             Nachos_Read();              //System call # 6

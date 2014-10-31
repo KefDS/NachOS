@@ -11,3 +11,9 @@ Version 0.7
 
 Se agrega el metodo Nachos_Join
 Se agrego el metodo Nachos_Read (No funciona bien)
+
+Version 0.8
+Se modifico el constructor de AddrSpace para asignar correctamente el segmento de datos sin inicializar.
+Se cambio Nachos_Close xq no estaba funcionando correctamente.
+Ya funciona el Read.
+
