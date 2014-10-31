@@ -92,9 +92,11 @@ AddrSpace::AddrSpace(OpenFile *executable){
     // first, set up the translation
     pageTable = new TranslationEntry[numPages];
 
-    for (i = 0; i < numPages; i++) {
+    for (i = 0; i < numPages; ++i) {
         pageTable[i].virtualPage = i;
-        pageTable[i].physicalPage = MiMapa->Find(); //ya no lo asigna lineal, busca donde hay libre
+        int posLibre = MiMapa->Find();
+        pageTable[i].physicalPage = posLibre; //ya no lo asigna lineal, busca donde hay libre
+        DEBUG('a', "physicalPage[%d]= %d || virtualPage[%d]=%d\n", i, posLibre, i, i);
         pageTable[i].valid = true;
         pageTable[i].use = false;
         pageTable[i].dirty = false;

@@ -133,6 +133,16 @@ void Nachos_Join(){     //System call # 3
 void Nachos_Create(){   //System call # 4
 
     Copy_Mem(4);
+    int idFileUnix = creat(buffer, S_IRWXU|S_IRWXO|S_IRWXG); //S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
+    //S_IRWXO->otros tienen permiso de escritura, lectura y ejecucion
+    //S_IRWXG->el grupo tiene permiso de escritura, lectura y ejecucion
+    DEBUG('a', "File created on UNIX with id: %d", idFileUnix);
+    int idFileNachos = currentThread->tablaFiles->Open(idFileUnix);
+    currentThread->tablaFiles->addThread();
+    DEBUG('a', "File created on Nachos with id: %d", idFileNachos);
+    machine->WriteRegister(2, idFileNachos);
+    returnFromSystemCall();
+
 }//Nachos_Create
 
 void Nachos_Open() {    // System call # 5
@@ -172,8 +182,8 @@ void Nachos_Read(){     //System call # 6
 
 void Nachos_Write() {   // System call 7
 
+    DEBUG('a', "System call Write.\n");
     int size = machine->ReadRegister( 5 );	// Read size to write
-    // buffer = Read data from address given by user;
     OpenFileId id = machine->ReadRegister( 6 );	// Read file descriptor
 
 
@@ -181,14 +191,7 @@ void Nachos_Write() {   // System call 7
     int caracterLeido;
     int cantCaracteres = 0;
 
-    char buffer[size];
-    for(int i=0; i<size; ++i){
-        machine->ReadMem(bufferVirtual, 1, &caracterLeido);
-        buffer[i] = (char)caracterLeido;
-        ++bufferVirtual;
-        ++cantCaracteres;
-        caracterLeido = 0;
-    }
+    Copy_Mem(4);
     switch (id) {
 
     case  ConsoleInput:	// User could not write to standard input
@@ -196,7 +199,6 @@ void Nachos_Write() {   // System call 7
         break;
     case  ConsoleOutput:
         buffer[ size ] = VACIO;
-        stats->numConsoleCharsWritten++;
         printf( "%s \n", buffer );
         break;
     case ConsoleError: // This trick permits to write integers to console
@@ -209,7 +211,6 @@ void Nachos_Write() {   // System call 7
             machine->WriteRegister(2, cantCaracteres);
             stats->numDiskWrites++;
         }else{
-            printf("File is not open\n");
             machine->WriteRegister(2, ERROR);
         }
     }
@@ -313,6 +314,7 @@ void Nachos_SemWait(){      //System call # 14
 void ExceptionHandler(ExceptionType which){
 
     int type = machine->ReadRegister(2);
+    DEBUG('a', "Entre en exception handler con type %d y ExceptionType %d\n", type, which);
 
     switch ( which ) {
 
@@ -336,16 +338,14 @@ void ExceptionHandler(ExceptionType which){
             ASSERT(false);
             break;
         case SC_Create:
-            //Nachos_Create();
-            printf("No se ha implementado Create\n");
-            ASSERT(false);
+            Nachos_Create();
             break;
         case SC_Open:
             Nachos_Open();             // System call # 5
             returnFromSystemCall();
             break;
         case SC_Read:
-            Nachos_Read();
+            //Nachos_Read();
             printf("No se ha implementado Read\n");
             ASSERT(false);
             break;
@@ -374,13 +374,13 @@ void ExceptionHandler(ExceptionType which){
             Nachos_SemWait();
             break;
         default:
-            printf( "Unexpected exception %d\n", which );
+            printf( "Segundo switch-> Unexpected exception %d\n", which );
             ASSERT(false);
             break;
         }
         break;
     default:
-        printf( "Unexpected exception %d\n", which );
+        printf( "Primer switch -> Unexpected exception %d\n", which );
         ASSERT(false);
         break;
     }
