@@ -1,0 +1,3 @@
+Version 0.4
+
+Se sobrecargó el operador "=" para NachosOpenFilesTable

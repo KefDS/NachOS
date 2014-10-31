@@ -1,6 +1,6 @@
 #include "syscall.h"
 
-// Comentario de codigo
+// COmentario de codigo
 
 int
 main()

@@ -19,11 +19,21 @@ NachosOpenFilesTable::NachosOpenFilesTable(){
     usage = 1;
 
 }
+
 NachosOpenFilesTable::~NachosOpenFilesTable(){
     if(usage>0){
         delete[] openFiles;
         usage = 0;
     }
+}
+
+NachosOpenFilesTable& NachosOpenFilesTable::operator=(const NachosOpenFilesTable& tablaOriginal){
+    for(int i=0; i<TAM_VECTOR; ++i){
+        openFiles[i] = tablaOriginal.openFiles[i];
+    }
+    usage = tablaOriginal.usage;    //los archivos que hay abiertos
+    ++usage;                        //mas yo
+    return *this;
 }
 
 int NachosOpenFilesTable::Open(int UnixHandle){

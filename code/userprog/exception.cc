@@ -250,10 +250,7 @@ void Nachos_Fork(){     //System call # 9
     DEBUG('u', "Entering Fork System call");
 
     Thread *nuevoHilo = new Thread("Hijo");     //proceso hijo
-    for(int i=0; i<currentThread->tablaFiles->getUsage(); ++i){  //tiene que copiar cada elemento de la tabla de archivos
-
-    }
-    nuevoHilo->tablaFiles = currentThread->tablaFiles;  //esta asignando el puntero ****HAY QUE CAMBIARLO******
+    nuevoHilo->tablaFiles = currentThread->tablaFiles;  //NachosOpenFilesTable tiene sobrecargado el operador = entonces no hay bronca :D
     int idHilo = currentThread->tablaProcesos->Open((long)nuevoHilo);    //agrega el hilo nuevo a la tabla de procesos
     currentThread->tablaFiles->addThread();
     currentThread->tablaProcesos->addThread();
