@@ -198,6 +198,40 @@ void Nachos_Open() {    // System call # 5
 
 void Nachos_Read(){     //System call # 6
 
+    DEBUG('a', "Entering Nachos_Read.\n");
+    int queLeer = machine->ReadRegister(4);         //lo que hay que leer
+    int tama = machine->ReadRegister(5);            //tamano de lo que voy a leer
+    OpenFileId idFileNachOS = machine->ReadRegister(6);   //le indica si lee de consola o de un archivo
+
+    char* strTmp = new char[tama];
+    int cant = 0;
+    switch(idFileNachOS){
+    //lecturas de consola
+    case ConsoleOutput:
+        machine->WriteRegister(2, ERROR);
+        printf("ERROR: User can't read from console output.\n");
+        break;
+    case ConsoleInput:
+        cant = read(1, strTmp, tama);   //lee con el read de UNIX
+        machine->WriteRegister(2, cant);
+        printf("User read from console Input.\n");
+        break;
+    case ConsoleError:
+        printf("ERROR: Console error %d.\n", queLeer);
+        break;
+    default:
+        //lectura de archivos
+        if(currentThread->tablaFiles->isOpened(idFileNachOS) == true){
+            int idFileUnix = currentThread->tablaFiles->getUnixHandle(idFileNachOS);    //toma el identificador en UNIX del archivo que va a leer
+            cant = read(idFileUnix, strTmp, tama);  //lee con el read de UNIX
+            machine->WriteRegister(2, cant);
+            printf("User read from file.\n");
+        }else{
+            machine->WriteRegister(2, ERROR);   //se quiere leer de un archivo que no esta abierto
+        }
+    }
+    returnFromSystemCall();
+    DEBUG('a', "Exiting Nachos_Read.\n");
 }//Nachos_Read
 
 void Nachos_Write() {   // System call 7
@@ -386,9 +420,7 @@ void ExceptionHandler(ExceptionType which){
             returnFromSystemCall();
             break;
         case SC_Read:
-            //Nachos_Read();
-            printf("No se ha implementado Read\n");
-            ASSERT(false);
+            Nachos_Read();              //System call # 6
             break;
         case SC_Write:
             Nachos_Write();             // System call # 7

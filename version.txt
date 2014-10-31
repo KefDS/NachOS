@@ -10,3 +10,4 @@ Se agregaron comentarios de Debug a cada metodo para avisar cuando entran.
 Version 0.7
 
 Se agrega el metodo Nachos_Join
+Se agrego el metodo Nachos_Read (No funciona bien)
