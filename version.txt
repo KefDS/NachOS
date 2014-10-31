@@ -1,3 +1,7 @@
 Version 0.5
 
-Se implemento Nachos_Create 
+Se implemento Nachos_Create
+
+Version 0.6
+
+Se arreglo el constructor de AddrSpace  
