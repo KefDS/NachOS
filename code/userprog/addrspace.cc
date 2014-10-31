@@ -100,7 +100,7 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 		// pages to be read-only
 	}
 
-	DEBUG('a', "Asignamos bien la memoria.\n");
+    DEBUG('a', "Code Segment asignation.\n");
 	int cantUsadaCodeSeg = divRoundUp(noffH.code.size, PageSize);
 	if (noffH.code.size > 0) {
 		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (CS)
@@ -111,6 +111,7 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 		}
 	}
 
+    DEBUG('a', "Used Data Segment asignation.\n");
 	int cantUsadaDataSeg = divRoundUp(noffH.initData.size, PageSize);
 	if (noffH.initData.size > 0) {
 		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (DS)
@@ -120,6 +121,26 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 			executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.initData.inFileAddr) );
 		}
 	}
+
+    DEBUG('a', "Unused Data Segment asignation.\n");
+    int cantUsadaDataUniSeg = divRoundUp(noffH.uninitData.size, PageSize);
+    if(noffH.uninitData.size>0){
+        //Tomará cada págian virtual del ejecutable, obtendrá la dirección física y se la asignará al ejecutable (Datos sin inicializar)
+        for(unsigned int i= cantUsadaDataSeg; i<cantUsadaDataUniSeg; ++i){
+            int pagina = pageTable[i].physicalPage;
+            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.uninitData.inFileAddr));
+        }
+    }
+
+    DEBUG('a', "Stack Segment asignation.\n");
+    //int cantUsadaPila = divRoundUp(UserStackSize, PageSize);
+    if(UserStackSize>0){
+        //Asigna la parte de memoria correspondiente a la pila
+        for(unsigned int i=cantUsadaDataUniSeg; i<numPages; ++i){
+            int pagina = pageTable[i].physicalPage;
+            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i+noffH.uninitData.inFileAddr+cantUsadaDataUniSeg));
+        }
+    }
 }
 
 //----------------------------------------------------------------------

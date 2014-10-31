@@ -71,7 +71,7 @@
 //----------------------------------------------------------------------
 
 char buffer[TAMBUFFER];   //se va a usar como buffer
-Semaphore* semMutexAux = new Semaphore("Semamoro para bloquear secciones criticas", 1);
+Semaphore semMutexAux("Semamoro para bloquear secciones criticas", 1);
 
 void returnFromSystemCall() {
 
@@ -207,7 +207,7 @@ void Nachos_Read(){     //System call # 6
     OpenFileId idFileNachOS = machine->ReadRegister(6);   //le indica si lee de consola o de un archivo
 
     int cant = 0;
-    semMutexAux->P();   //Solo yo puedo leer
+    semMutexAux.P();   //Solo yo puedo leer
     switch(idFileNachOS){
     //lecturas de consola
     case ConsoleOutput:
@@ -235,7 +235,7 @@ void Nachos_Read(){     //System call # 6
             printf("ERROR: File doesn't exist.\n");
         }
     }
-    semMutexAux->V();
+    semMutexAux.V();
     returnFromSystemCall();
     DEBUG('a', "Exiting Nachos_Read.\n");
 }//Nachos_Read
@@ -252,7 +252,7 @@ void Nachos_Write() {   // System call 7
     int cantCaracteres = 0;
 
     Copy_Mem(4);
-    semMutexAux->P();   //solo yo puedo escribir
+    semMutexAux.P();   //solo yo puedo escribir
     switch (idFileNachOS) {
 
     case  ConsoleInput:	// User could not write to standard input
@@ -277,9 +277,10 @@ void Nachos_Write() {   // System call 7
             machine->WriteRegister(2, ERROR);
         }
     }
-    semMutexAux->V();
+    semMutexAux.V();
     returnFromSystemCall(); // Update the PC registers
     DEBUG('a', "Exiting Write System Call.\n");
+
 } // Nachos_Write
 
 
@@ -303,6 +304,7 @@ void Nachos_Close(){        //System call # 8
 }//Nachos_Close
 
 void AyudanteFork(void* vo){       //Metodo auxiliar que usa Fork
+
     int* p = (int*)vo;
     AddrSpace *space;
     space = currentThread->space;
@@ -314,6 +316,7 @@ void AyudanteFork(void* vo){       //Metodo auxiliar que usa Fork
     machine->WriteRegister( NextPCReg, *p + 4 );
     machine->Run();                     // jump to the user progam
     ASSERT(false);
+
 }
 
 void Nachos_Fork(){     //System call # 9
