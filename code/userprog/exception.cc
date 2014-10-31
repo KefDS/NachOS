@@ -131,6 +131,19 @@ void Nachos_Exec(){     //System call # 2
 
 void Nachos_Join(){     //System call # 3
 
+        SpaceId sID = machine->ReadRegister(4);
+        DEBUG('a', "Entering System Call Join.\n");
+        Semaphore *semaforo = new Semaphore("Semaforo join", 0);
+        currentThread->tablaSemaforos->semOpen(sID, (long)semaforo);
+        currentThread->tablaSemaforos->addThread();
+        if(currentThread->tablaProcesos->getUnixHandle(sID) == ERROR){
+            machine->WriteRegister(2, ERROR);
+        }else{
+            machine->WriteRegister(2, VACIO);
+        }
+        semaforo->P();
+        returnFromSystemCall();
+        DEBUG('a', "Exitin System Call Join.\n");
 }//Nachos_Join
 
 void Nachos_Create(){   //System call # 4

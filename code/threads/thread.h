@@ -83,7 +83,7 @@ class Thread {
 
     NachosOpenFilesTable* tablaProcesos;
     NachosOpenFilesTable* tablaFiles;
-NachosOpenFilesTable* tablaSemaforos;
+    NachosOpenFilesTable* tablaSemaforos;
     Thread(const char* debugName);	// initialize a Thread 
     ~Thread(); 				// deallocate a Thread
 					// NOTE -- thread being deleted

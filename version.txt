@@ -6,3 +6,7 @@ Version 0.6
 
 Se arreglo el constructor de AddrSpace 
 Se agregaron comentarios de Debug a cada metodo para avisar cuando entran. 
+
+Version 0.7
+
+Se agrega el metodo Nachos_Join
