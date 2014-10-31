@@ -114,7 +114,7 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 	int cantUsadaDataSeg = divRoundUp(noffH.initData.size, PageSize);
 	if (noffH.initData.size > 0) {
 		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (DS)
-        for(unsigned int i = cuantos1; i < cantUsadaDataSeg; ++i) {
+        for(unsigned int i = cantUsadaCodeSeg; i < cantUsadaDataSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
 			DEBUG('a', "Page number: %i, Used bytes: %i\n", i, PageSize*i);
 			executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.initData.inFileAddr) );
