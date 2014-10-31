@@ -64,7 +64,6 @@ SwapHeader (NoffHeader* noffH) {
 //
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
-<<<<<<< HEAD
 AddrSpace::AddrSpace(OpenFile* executable) {
 	NoffHeader noffH;
 
@@ -121,65 +120,6 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 			executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.initData.inFileAddr) );
 		}
 	}
-=======
-
-AddrSpace::AddrSpace(OpenFile *executable){
-    NoffHeader noffH;
-    unsigned int i, size;
-
-    executable->ReadAt((char *)&noffH, sizeof(noffH), 0);
-    if ((noffH.noffMagic != NOFFMAGIC) &&
-            (WordToHost(noffH.noffMagic) == NOFFMAGIC))
-        SwapHeader(&noffH);
-    ASSERT(noffH.noffMagic == NOFFMAGIC);
-
-    // how big is address space?
-    size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;	// we need to increase the size
-    // to leave room for the stack
-    numPages = divRoundUp(size, PageSize);
-    size = numPages * PageSize;
-
-    ASSERT(numPages <= NumPhysPages);		// check we're not trying
-    // to run anything too big --
-    // at least until we have
-    // virtual memory
-
-    DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
-
-    // first, set up the translation
-    pageTable = new TranslationEntry[numPages];
-
-    for (i = 0; i < numPages; ++i) {
-        pageTable[i].virtualPage = i;
-        int posLibre = MiMapa->Find();
-        pageTable[i].physicalPage = posLibre; //ya no lo asigna lineal, busca donde hay libre
-        DEBUG('a', "physicalPage[%d]= %d || virtualPage[%d]=%d\n", i, posLibre, i, i);
-        pageTable[i].valid = true;
-        pageTable[i].use = false;
-        pageTable[i].dirty = false;
-        pageTable[i].readOnly = false;  // if the code segment was entirely on
-                                        // a separate page, we could set its
-                                        // pages to be read-only
-    }
-
-    DEBUG('a', "Asignamos bien la memoria.\n");
-    int cuantos1 = divRoundUp(noffH.code.size, PageSize);
-    if (noffH.code.size > 0) {
-        for(int t=0; t<cuantos1; ++t){
-            int pagina = pageTable[t].physicalPage;
-            DEBUG('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", t, PageSize*t, noffH.code.inFileAddr);
-            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*t+noffH.code.inFileAddr) );
-        }
-    }
-    int cuantos2 = divRoundUp(noffH.initData.size, PageSize);
-    if (noffH.initData.size > 0) {
-        for(int t=0; t<cuantos2; ++t){
-            int pagina = pageTable[t].physicalPage;
-            DEBUG('a', "Page number: %i, Used bytes: %i\n", t, PageSize*t);
-            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*t + noffH.initData.inFileAddr) );
-        }
-    }
->>>>>>> 9fd03ad331bfe3446effcf3c84e45fe52c3dbc91
 }
 
 //----------------------------------------------------------------------
