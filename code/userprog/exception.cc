@@ -92,11 +92,13 @@ void Nachos_Halt() {        //System call #0
 
 void Copy_Mem(int registro) {   //Pasa lo que hay en el registro a un String
 	int carac = 1;
+	int i;
 	int direccion = machine->ReadRegister(registro);
-	for(int j = 0; carac != VACIO; ++j) {
-		machine->ReadMem(direccion + j, 1, &carac);
-		buffer[j] = (char)carac;
+	for(i = 0; carac != '\0'; ++i) {
+		machine->ReadMem(direccion + i, 1, &carac);
+		buffer[i] = (char)carac;
 	}
+	buffer[++i] = '\0';
 }
 
 void Nachos_Exit() {    //System call # 1
@@ -249,20 +251,14 @@ void Nachos_Read() {    //System call # 6
 }//Nachos_Read
 
 void Nachos_Write() {   // System call 7
-
 	DEBUG('a', "System call Write.\n");
 	int size = machine->ReadRegister(5);	// Read size to write
 	OpenFileId idFileNachOS = machine->ReadRegister(6);	// Read file descriptor
-
-
-	int bufferVirtual = machine->ReadRegister(4);
-	int caracterLeido;
 	int cantCaracteres = 0;
 
 	Copy_Mem(4);
 	semMutexAux.P();   //solo yo puedo escribir
 	switch(idFileNachOS) {
-
 		case  ConsoleInput:	// User could not write to standard input
 			machine->WriteRegister(2, ERROR);
 			break;
