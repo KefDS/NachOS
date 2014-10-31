@@ -116,7 +116,7 @@ AddrSpace::AddrSpace(OpenFile *executable){
     }
     int cuantos2 = divRoundUp(noffH.initData.size, PageSize);
     if (noffH.initData.size > 0) {
-        for(int t=0; t<cuantos2; ++t){
+        for(int t=cuantos1; t<cuantos2; ++t){
             int pagina = pageTable[t].physicalPage;
             DEBUG('a', "Page number: %i, Used bytes: %i\n", t, PageSize*t);
             executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*t + noffH.initData.inFileAddr) );
