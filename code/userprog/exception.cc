@@ -71,6 +71,7 @@
 //----------------------------------------------------------------------
 
 char buffer[TAMBUFFER];   //se va a usar como buffer
+Semaphore* semMutexAux = new Semaphore("Semamoro para bloquear secciones criticas", 1);
 
 void returnFromSystemCall() {
 
@@ -131,34 +132,36 @@ void Nachos_Exec(){     //System call # 2
 
 void Nachos_Join(){     //System call # 3
 
-        SpaceId sID = machine->ReadRegister(4);
-        DEBUG('a', "Entering System Call Join.\n");
-        Semaphore *semaforo = new Semaphore("Semaforo join", 0);
-        currentThread->tablaSemaforos->semOpen(sID, (long)semaforo);
-        currentThread->tablaSemaforos->addThread();
-        if(currentThread->tablaProcesos->getUnixHandle(sID) == ERROR){
-            machine->WriteRegister(2, ERROR);
-        }else{
-            machine->WriteRegister(2, VACIO);
-        }
-        semaforo->P();
-        returnFromSystemCall();
-        DEBUG('a', "Exitin System Call Join.\n");
+    SpaceId sID = machine->ReadRegister(4);
+    DEBUG('a', "Entering System Call Join.\n");
+    Semaphore *semaforo = new Semaphore("Semaforo join", 0);
+    currentThread->tablaSemaforos->semOpen(sID, (long)semaforo);
+    currentThread->tablaSemaforos->addThread();
+    if(currentThread->tablaProcesos->getUnixHandle(sID) == ERROR){
+        machine->WriteRegister(2, ERROR);
+    }else{
+        machine->WriteRegister(2, VACIO);
+    }
+    semaforo->P();
+    returnFromSystemCall();
+    DEBUG('a', "Exitin System Call Join.\n");
+
 }//Nachos_Join
 
 void Nachos_Create(){   //System call # 4
     DEBUG('a', "Entering Create.\n");
     Copy_Mem(4);
-    int idFileUnix = creat(buffer, S_IRWXU|S_IRWXO|S_IRWXG); //S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
+    int idFileUnix = creat(buffer, S_IRWXU|S_IRWXO|S_IRWXG);
+    //S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
     //S_IRWXO->otros tienen permiso de escritura, lectura y ejecucion
     //S_IRWXG->el grupo tiene permiso de escritura, lectura y ejecucion
-    DEBUG('a', "File created on UNIX with id: %d", idFileUnix);
+    DEBUG('a', "File created on UNIX with id: %d\n", idFileUnix);
     int idFileNachos = currentThread->tablaFiles->Open(idFileUnix);
     currentThread->tablaFiles->addThread();
-    DEBUG('a', "File created on Nachos with id: %d", idFileNachos);
+    DEBUG('a', "File created on Nachos with id: %d\n", idFileNachos);
     machine->WriteRegister(2, idFileNachos);
     returnFromSystemCall();
-        DEBUG('a', "Exiting Create.\n");
+    DEBUG('a', "Exiting Create.\n");
 
 }//Nachos_Create
 
@@ -182,7 +185,7 @@ void Nachos_Open() {    // System call # 5
         }
     }while(seguir);
 
-    printf("File name: %s", bufferNombre);
+    printf("File name %s opened.\n", bufferNombre);
 
     OpenFileId idFile = open(bufferNombre, O_RDWR);
     int idFileNachos;
@@ -203,8 +206,8 @@ void Nachos_Read(){     //System call # 6
     int tama = machine->ReadRegister(5);            //tamano de lo que voy a leer
     OpenFileId idFileNachOS = machine->ReadRegister(6);   //le indica si lee de consola o de un archivo
 
-    char* strTmp = new char[tama];
     int cant = 0;
+    semMutexAux->P();   //Solo yo puedo leer
     switch(idFileNachOS){
     //lecturas de consola
     case ConsoleOutput:
@@ -212,24 +215,27 @@ void Nachos_Read(){     //System call # 6
         printf("ERROR: User can't read from console output.\n");
         break;
     case ConsoleInput:
-        cant = read(1, strTmp, tama);   //lee con el read de UNIX
+        cant = read(1, buffer, tama);   //lee con el read de UNIX
         machine->WriteRegister(2, cant);
-        printf("User read from console Input.\n");
+        stats->numConsoleCharsRead += cant;
         break;
     case ConsoleError:
         printf("ERROR: Console error %d.\n", queLeer);
         break;
     default:
         //lectura de archivos
-        if(currentThread->tablaFiles->isOpened(idFileNachOS) == true){
-            int idFileUnix = currentThread->tablaFiles->getUnixHandle(idFileNachOS);    //toma el identificador en UNIX del archivo que va a leer
-            cant = read(idFileUnix, strTmp, tama);  //lee con el read de UNIX
+        if( currentThread->tablaFiles->isOpened(idFileNachOS) ){//esta abierto?
+            DEBUG('n', "Entro a read de UNIX.\n");
+            cant = read( currentThread->tablaFiles->getUnixHandle(idFileNachOS), buffer, tama );  //lee con el read de UNIX
+            DEBUG('n', "Sali del read de UNIX.\n");
             machine->WriteRegister(2, cant);
-            printf("User read from file.\n");
+            stats->numDiskReads++;
         }else{
             machine->WriteRegister(2, ERROR);   //se quiere leer de un archivo que no esta abierto
+            printf("ERROR: File doesn't exist.\n");
         }
     }
+    semMutexAux->V();
     returnFromSystemCall();
     DEBUG('a', "Exiting Nachos_Read.\n");
 }//Nachos_Read
@@ -238,7 +244,7 @@ void Nachos_Write() {   // System call 7
 
     DEBUG('a', "System call Write.\n");
     int size = machine->ReadRegister( 5 );	// Read size to write
-    OpenFileId id = machine->ReadRegister( 6 );	// Read file descriptor
+    OpenFileId idFileNachOS = machine->ReadRegister( 6 );	// Read file descriptor
 
 
     int bufferVirtual = machine->ReadRegister(4);
@@ -246,28 +252,32 @@ void Nachos_Write() {   // System call 7
     int cantCaracteres = 0;
 
     Copy_Mem(4);
-    switch (id) {
+    semMutexAux->P();   //solo yo puedo escribir
+    switch (idFileNachOS) {
 
     case  ConsoleInput:	// User could not write to standard input
         machine->WriteRegister( 2, ERROR );
         break;
     case  ConsoleOutput:
         buffer[ size ] = VACIO;
+        stats->numConsoleCharsWritten += size;
         printf( "%s \n", buffer );
         break;
     case ConsoleError: // This trick permits to write integers to console
         printf( "%d\n", machine->ReadRegister( 4 ) );
         break;
     default:
-        bool abierto = currentThread->tablaFiles->isOpened(id);
-        if(abierto == true){
-            write(currentThread->tablaFiles->getUnixHandle(id), buffer, size);
+        if( currentThread->tablaFiles->isOpened(idFileNachOS) ){
+            DEBUG('a', "Entro a write de UNIX.\n");
+            write(currentThread->tablaFiles->getUnixHandle(idFileNachOS), buffer, size);
+            DEBUG('a', "Salgo del write de UNIX.\n");
             machine->WriteRegister(2, cantCaracteres);
             stats->numDiskWrites++;
         }else{
             machine->WriteRegister(2, ERROR);
         }
     }
+    semMutexAux->V();
     returnFromSystemCall(); // Update the PC registers
     DEBUG('a', "Exiting Write System Call.\n");
 } // Nachos_Write
@@ -406,7 +416,7 @@ void ExceptionHandler(ExceptionType which){
             break;
         case SC_Exec:
             //Nachos_Exec();
-            printf("No se ha implementado Exec\n");
+            printf("No se ha implementado Exec\n");             //** FALTA **
             ASSERT(false);
             break;
         case SC_Join:
