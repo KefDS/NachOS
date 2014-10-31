@@ -1,0 +1,6 @@
+# Archivos a ignorar
+
+*.o
+*~
+*.dep
+
