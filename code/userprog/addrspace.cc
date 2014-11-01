@@ -36,8 +36,7 @@
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
 
-static void
-SwapHeader(NoffHeader* noffH) {
+static void SwapHeader(NoffHeader* noffH) {
 	noffH->noffMagic = WordToHost(noffH->noffMagic);
 	noffH->code.size = WordToHost(noffH->code.size);
 	noffH->code.virtualAddr = WordToHost(noffH->code.virtualAddr);
@@ -103,7 +102,7 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 	DEBUG('n', "Code Segment asignation.\n");
 	int cantUsadaCodeSeg = divRoundUp(noffH.code.size, PageSize);
 	if(noffH.code.size > 0) {
-		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (CS)
+		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el CS
 		for(unsigned int i = 0; i < cantUsadaCodeSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
 			DEBUG('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", i, PageSize * i, noffH.code.inFileAddr);
@@ -114,7 +113,7 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 	DEBUG('n', "Used Data Segment asignation.\n");
 	int cantUsadaDataSeg = divRoundUp(noffH.initData.size, PageSize);
 	if(noffH.initData.size > 0) {
-		// Tomará cada página virtual del ejecutable, obtendrá la dirección física y se le asignará al ejecutable (DS)
+		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el DS
 		for(unsigned int i = cantUsadaCodeSeg; i < cantUsadaDataSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
 			DEBUG('a', "Page number: %i, Used bytes: %i\n", i, PageSize * i);
@@ -125,7 +124,7 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 	DEBUG('n', "Unused Data Segment asignation.\n");
 	int cantUsadaDataUniSeg = divRoundUp(noffH.uninitData.size, PageSize);
 	if(noffH.uninitData.size > 0) {
-		//Tomará cada págian virtual del ejecutable, obtendrá la dirección física y se la asignará al ejecutable (Datos sin inicializar)
+		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el segmentos de datos sin inicializar
 		for(unsigned int i = cantUsadaDataSeg; i < cantUsadaDataUniSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
 			bzero(&(machine->mainMemory[pagina * PageSize]), PageSize);
@@ -170,7 +169,6 @@ AddrSpace::AddrSpace(AddrSpace* espacioPadre) {
 // AddrSpace::~AddrSpace
 // 	Dealloate an address space.  Nothing for now!
 //----------------------------------------------------------------------
-
 AddrSpace::~AddrSpace() {
 	delete pageTable;
 }
@@ -184,7 +182,6 @@ AddrSpace::~AddrSpace() {
 //	will be saved/restored into the currentThread->userRegisters
 //	when this thread is context switched out.
 //----------------------------------------------------------------------
-
 void AddrSpace::InitRegisters() {
 	int i;
 
@@ -212,7 +209,6 @@ void AddrSpace::InitRegisters() {
 //
 //	For now, nothing!
 //----------------------------------------------------------------------
-
 void AddrSpace::SaveState()
 {}
 
@@ -223,7 +219,6 @@ void AddrSpace::SaveState()
 //
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
-
 void AddrSpace::RestoreState() {
 	machine->pageTable = pageTable;
 	machine->pageTableSize = numPages;

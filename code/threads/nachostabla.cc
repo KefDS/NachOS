@@ -10,7 +10,7 @@
 #include "nachostabla.h"
 
 
-NachosOpenFilesTable::NachosOpenFilesTable(){
+NachosOpenFilesTable::NachosOpenFilesTable() {
 
     openFiles = new int(TAM_VECTOR);
     for(int i=0; i<TAM_VECTOR; ++i){    //pone todos los datos del vector en -1
@@ -27,7 +27,7 @@ NachosOpenFilesTable::~NachosOpenFilesTable(){
     }
 }
 
-NachosOpenFilesTable& NachosOpenFilesTable::operator=(const NachosOpenFilesTable& tablaOriginal){
+NachosOpenFilesTable& NachosOpenFilesTable::operator=(const NachosOpenFilesTable& tablaOriginal) {
     for(int i=0; i<TAM_VECTOR; ++i){
         openFiles[i] = tablaOriginal.openFiles[i];
     }
@@ -44,16 +44,18 @@ int NachosOpenFilesTable::Open(int UnixHandle){
     if(posicion<TAM_VECTOR){
         openFiles[posicion] = UnixHandle;
         return posicion;
-    }else{
+    }
+    else{
         return -1;  //no hay campo
     }
 }
 
 int NachosOpenFilesTable::Close(int NachosHandle){
-    if(NachosHandle<=usage){
+    if(NachosHandle <= usage){
         openFiles[NachosHandle] = BANDERA;
         return 0;
-    }else{
+    }
+    else {
         return -1;
     }
 }
@@ -61,7 +63,8 @@ int NachosOpenFilesTable::Close(int NachosHandle){
 bool NachosOpenFilesTable::isOpened(int NachosHandle){
     if(openFiles[NachosHandle] != BANDERA){
         return true;
-    }else{
+    }
+    else {
         return false;
     }
 }
