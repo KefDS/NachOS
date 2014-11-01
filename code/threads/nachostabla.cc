@@ -16,7 +16,7 @@ NachosOpenFilesTable::NachosOpenFilesTable(){
     for(int i=0; i<TAM_VECTOR; ++i){    //pone todos los datos del vector en -1
         openFiles[i] = BANDERA;
     }
-    usage = 1;
+    usage = 2;
 
 }
 
