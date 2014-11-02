@@ -25,7 +25,8 @@ class NachosOpenFilesTable {
 		void Print();               // Print contents
 
 	private:
+		// Los miebros de datos estarán en memoria dinámica ya que serán compartidos por varios Threads
 		int* openFiles;			// A vector with user opened files
 		BitMap* openFilesMap;	// A bitmap to control our vector
-		int usage;				// How many threads are using this table
+		int* usage;				// How many threads are using this table
 };

@@ -11,8 +11,8 @@
 
 NachosOpenFilesTable::NachosOpenFilesTable()
 	: openFiles (new int[TAM_VECTOR])
-	, openFilesMap (new BitMap(TAM_VECTOR))
-	, usage (0) {
+	, openFilesMap (new BitMap (TAM_VECTOR))
+	, usage (new int (0)) {
 	// Marca como ocupado las 3 primeras pocisiones (stdin, stdout, stderr)
 	openFilesMap->Mark (0);
 	openFilesMap->Mark (1);
@@ -20,17 +20,11 @@ NachosOpenFilesTable::NachosOpenFilesTable()
 }
 
 NachosOpenFilesTable::~NachosOpenFilesTable() {
-	delete [] openFiles;
-	delete openFilesMap;
-}
-
-NachosOpenFilesTable& NachosOpenFilesTable::operator= (const NachosOpenFilesTable& other) {
-	for (int i = 0; i < TAM_VECTOR; ++i) {
-		openFiles[i] = other.openFiles[i];
+	if (usage <= 0) { // Como es el último hilo se preocede a borrar los miembros de datos
+		delete [] openFiles;
+		delete openFilesMap;
+		delete usage;
 	}
-	*(openFilesMap) = *(other.openFilesMap);
-	usage = 0;
-	return *this;
 }
 
 int NachosOpenFilesTable::Open (int UnixHandle) {
@@ -76,7 +70,7 @@ void NachosOpenFilesTable::delThread() {
 }
 
 int NachosOpenFilesTable::getUsage() {
-	return usage;
+	return *usage;
 }
 
 void NachosOpenFilesTable::Print() {
