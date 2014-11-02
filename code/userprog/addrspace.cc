@@ -89,9 +89,10 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 	// first, set up the translation
 	pageTable = new TranslationEntry[numPages];
 
-	for (unsigned int i = 0; i < numPages; i++) {
-		pageTable[i].virtualPage = i;
-		pageTable[i].physicalPage = MiMapa->Find(); // Buscará en la memoria física, páginas disponibles
+	// Se asigna la realción página virtual <--> página física
+	for (unsigned int i = 0; i < numPages; ++i) {
+		pageTable[i].virtualPage = i; // Las páginas virtuales sí son lineales, el programa cree que los tiene contiguas
+		pageTable[i].physicalPage = MiMapa->Find(); // Buscará páginas disponible en la memoria física
 		pageTable[i].valid = true;
 		pageTable[i].use = false;
 		pageTable[i].dirty = false;
@@ -100,60 +101,46 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		// pages to be read-only
 	}
 
-	DEBUG ('n', "Code Segment asignation.\n");
-	int cantUsadaCodeSeg = divRoundUp (noffH.code.size, PageSize);
+	// Copia en memoria el Code Segment
+	DEBUG ('t', "Code Segment asignation.\n");
+	int cantPagUsadas_CodeSeg = divRoundUp (noffH.code.size, PageSize);
 	if (noffH.code.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el CS
-		for (unsigned int i = 0; i < cantUsadaCodeSeg; ++i) {
+		for (unsigned int i = 0; i < cantPagUsadas_CodeSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
 			DEBUG ('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", i, PageSize * i, noffH.code.inFileAddr);
 			executable->ReadAt (& (machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.code.inFileAddr));
 		}
 	}
 
-	DEBUG ('n', "Used Data Segment asignation.\n");
-	int cantUsadaDataSeg = divRoundUp (noffH.initData.size, PageSize);
+	// Copia en memoria el Data Segment
+	DEBUG ('t', "Used Data Segment asignation.\n");
+	int cantPagUsadas_DataSeg = divRoundUp (noffH.initData.size, PageSize);
 	if (noffH.initData.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el DS
-		for (unsigned int i = cantUsadaCodeSeg; i < cantUsadaDataSeg; ++i) {
+		for (unsigned int i = cantPagUsadas_CodeSeg; i < cantPagUsadas_DataSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
 			DEBUG ('a', "Page number: %i, Used bytes: %i\n", i, PageSize * i);
 			executable->ReadAt (& (machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.initData.inFileAddr));
 		}
 	}
-
-	DEBUG ('n', "Unused Data Segment asignation.\n");
-	int cantUsadaDataUniSeg = divRoundUp (noffH.uninitData.size, PageSize);
-	if (noffH.uninitData.size > 0) {
-		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el segmentos de datos sin inicializar
-		for (unsigned int i = cantUsadaDataSeg; i < cantUsadaDataUniSeg; ++i) {
-			int pagina = pageTable[i].physicalPage;
-			bzero (& (machine->mainMemory[pagina * PageSize]), PageSize);
-		}
-	}
-	/*
-		DEBUG('n', "Stack Segment asignation.\n");
-		//int cantUsadaPila = divRoundUp(UserStackSize, PageSize);
-		//Asigna la parte de memoria correspondiente a la pila
-		for(unsigned int i=cantUsadaDataUniSeg; i<numPages; ++i){
-			int pagina = pageTable[i].physicalPage;
-			bzero(&(machine->mainMemory[pagina*PageSize]), PageSize);
-		}*/
 }
 
 //----------------------------------------------------------------------
 // Constructor para uso del fork
-// Hace que papa e hijo compartan datos y codigo pero le hace una nueva pila al hijo
+// Hace que papa e hijo compartan datos y codigo
+// pero le hace una nueva pila al hijo
 //----------------------------------------------------------------------
-AddrSpace::AddrSpace (AddrSpace* espacioPadre) {
-	int tamPila = divRoundUp (UserStackSize, PageSize);
-	numPages = espacioPadre->numPages;
-	ASSERT (numPages <= (unsigned int) MiMapa->NumClear());
+AddrSpace::AddrSpace (AddrSpace* fatherSpace) {
+	int tamanioPila = divRoundUp (UserStackSize, PageSize);
+	numPages = fatherSpace->numPages;
+	ASSERT (numPages <= (unsigned int) MiMapa->NumClear()); // Hay espacio sufieciente?
+
 	pageTable = new TranslationEntry[numPages];
 	for (unsigned int i = 0; i < numPages; ++i) {
-		pageTable[i].virtualPage = i; // Como es virtual es lineal (0,1,2,3...)
-		if (i < numPages - tamPila) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
-			pageTable[i].physicalPage = espacioPadre->pageTable[i].physicalPage; // Comparten los mismas páginas
+		pageTable[i].virtualPage = i;	  // Como es virtual es lineal (0,1,2,3...)
+		if (i < (numPages - tamanioPila) ) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
+			pageTable[i].physicalPage = fatherSpace->pageTable[i].physicalPage; // Comparten los mismas páginas
 		}
 		else {
 			pageTable[i].physicalPage = MiMapa->Find(); // Busca espacio libre para asignar el espacio de pila
@@ -184,9 +171,7 @@ AddrSpace::~AddrSpace() {
 //	when this thread is context switched out.
 //----------------------------------------------------------------------
 void AddrSpace::InitRegisters() {
-	int i;
-
-	for (i = 0; i < NumTotalRegs; i++) {
+	for (int i = 0; i < NumTotalRegs; i++) {
 		machine->WriteRegister (i, 0);
 	}
 

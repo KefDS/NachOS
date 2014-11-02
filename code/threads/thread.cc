@@ -34,9 +34,9 @@ const unsigned STACK_FENCEPOST = 0xdeadbeef;
 
 Thread::Thread (const char* threadName) {
 	name = threadName;
-	tablaProcesos = new NachosOpenFilesTable();
-	tablaFiles = new NachosOpenFilesTable();
-	tablaSemaforos = new NachosOpenFilesTable();
+	tablaProcesos = new NachosOpenFilesTable();		// Procesos
+	tablaFiles = new NachosOpenFilesTable();		// Archivos
+	tablaSemaforos = new NachosOpenFilesTable();	// Semaforos
 	stackTop = NULL;
 	stack = NULL;
 	status = JUST_CREATED;
@@ -85,7 +85,6 @@ Thread::~Thread() {
 //	"func" is the procedure to run concurrently.
 //	"arg" is a single argument to be passed to the procedure.
 //----------------------------------------------------------------------
-
 void  Thread::Fork (VoidFunctionPtr func, void* arg) {
 #ifdef HOST_x86_64
 	DEBUG ('t', "Forking thread \"%s\" with func = 0x%lx, arg = %ld\n",
