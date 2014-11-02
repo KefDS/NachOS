@@ -103,7 +103,7 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 
 	// Copia en memoria el Code Segment
 	DEBUG ('t', "Code Segment asignation.\n");
-	int cantPagUsadas_CodeSeg = divRoundUp (noffH.code.size, PageSize);
+	unsigned int cantPagUsadas_CodeSeg = divRoundUp (noffH.code.size, PageSize);
 	if (noffH.code.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el CS
 		for (unsigned int i = 0; i < cantPagUsadas_CodeSeg; ++i) {
@@ -115,7 +115,7 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 
 	// Copia en memoria el Data Segment
 	DEBUG ('t', "Used Data Segment asignation.\n");
-	int cantPagUsadas_DataSeg = divRoundUp (noffH.initData.size, PageSize);
+	unsigned int cantPagUsadas_DataSeg = divRoundUp (noffH.initData.size, PageSize);
 	if (noffH.initData.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el DS
 		for (unsigned int i = cantPagUsadas_CodeSeg; i < cantPagUsadas_DataSeg; ++i) {

@@ -93,7 +93,7 @@ void mapeoMemoria (int registro, char* buffer) {
 }
 
 /* Asistete del SysCall exec */
-void Exec_Aux (void* tmp) {
+void execAux (void* tmp) {
 	int* executableName = (int*) tmp;
 	char bufferExec_Aux[TAMBUFFER];
 	mapeoMemoria (*executableName, bufferExec_Aux);
@@ -108,7 +108,7 @@ void Exec_Aux (void* tmp) {
 }
 
 /* Asistete del SysCall fork */
-void AyudanteFork (void* parametro) {     //Metodo auxiliar que usa Fork
+void forkAux (void* parametro) {     //Metodo auxiliar que usa Fork
 	int* p = (int*) parametro;
 	AddrSpace* space;
 	space = currentThread->space;
@@ -122,6 +122,7 @@ void AyudanteFork (void* parametro) {     //Metodo auxiliar que usa Fork
 	//ASSERT (false);
 }
 
+
 // System Calls
 
 /* Stop Nachos, and print out performance stats */
@@ -130,15 +131,19 @@ void Nachos_Halt() {        //System call #0
 	interrupt->Halt();
 } //Nachos_Halt
 
+
 /* Address space control operations: Exit, Exec, and Join */
 
-/* This user program is done (status = 0 means exited normally). */
+/* This user program is done (status = 0 means exited normally).
+ *
+ * void Exit(int status);
+ */
 void Nachos_Exit() {    //System call # 1
 	DEBUG ('a', "Entering Exit");
-	int idProc = machine->ReadRegister (4);
+	int status = machine->ReadRegister (4);
 	currentThread->Yield();
-	currentThread->tablaProcesos->delThread();
-	if (VACIO == currentThread->tablaProcesos->getUsage()) {
+	currentThread->m_processTable->delThread();
+	if (VACIO == currentThread->m_processTable->getUsage()) {
 		Nachos_Halt();  //soy el ultimo, apague y vamonos
 	}
 	if (NULL != currentThread->space) {
@@ -147,9 +152,9 @@ void Nachos_Exit() {    //System call # 1
 	}
 
 	//tengo que liberar los semaforos que yo como proceso habia creado
-	while (VACIO != currentThread->tablaSemaforos->getUsage()) {
-		Semaphore* semaforo = (Semaphore*) currentThread->tablaSemaforos->getUnixHandle (idProc);
-		currentThread->tablaSemaforos->delThread();
+	while (VACIO != currentThread->m_semaphoreTable->getUsage()) {
+		Semaphore* semaforo = (Semaphore*) currentThread->m_semaphoreTable->getUnixHandle (status);
+		currentThread->m_semaphoreTable->delThread();
 		semaforo->V();  //lo libero
 	}
 
@@ -159,14 +164,17 @@ void Nachos_Exit() {    //System call # 1
 
 }//Nachos_Exit
 
+
 /* Run the executable, stored in the Nachos file "name", and return the
  * address space identifier
+ *
+ * SpaceId Exec(char *name);
  */
 void Nachos_Exec() {    //System call # 2
 	DEBUG ('a', "Entering exec System call\n");
 	Thread* nuevoHilo = new Thread ("New Executable");    //nuevo proceso hijo
 	int tmp = machine->ReadRegister (4);
-	nuevoHilo->Fork (Exec_Aux, &tmp);
+	nuevoHilo->Fork (execAux, &tmp);
 
 	machine->WriteRegister (2, 0); // !
 	returnFromSystemCall();
@@ -174,14 +182,16 @@ void Nachos_Exec() {    //System call # 2
 
 /* Only return once the the user program "id" has finished.
  * Return the exit status.
+ *
+ * int Join(SpaceId id);
  */
 void Nachos_Join() {    //System call # 3
 	SpaceId sID = machine->ReadRegister (4);
 	DEBUG ('a', "Entering System Call Join.\n");
 	Semaphore* semaforo = new Semaphore ("Semaforo join", 0);
-	currentThread->tablaSemaforos->semOpen (sID, (long) semaforo);
-	currentThread->tablaSemaforos->addThread();
-	if (currentThread->tablaProcesos->getUnixHandle (sID) == ERROR) {
+	//currentThread->m_semaphoreTable->semOpen (sID, (long) semaforo);
+	currentThread->m_semaphoreTable->addThread();
+	if (currentThread->m_processTable->getUnixHandle (sID) == ERROR) {
 		machine->WriteRegister (2, ERROR);
 	}
 	else {
@@ -192,6 +202,7 @@ void Nachos_Join() {    //System call # 3
 	DEBUG ('a', "Exitin System Call Join.\n");
 }//Nachos_Join
 
+
 /* File system operations: Create, Open, Read, Write, Close
  * These functions are patterned after UNIX -- files represent
  * both files *and* hardware I/O devices.
@@ -201,12 +212,14 @@ void Nachos_Join() {    //System call # 3
  * will work for the purposes of testing out these routines.
  */
 
-/* Create a Nachos file, with "name" */
+/* Create a Nachos file, with "name"
+ *
+ * void Create(char *name)
+*/
 void Nachos_Create() {  //System call # 4
 	DEBUG ('a', "Entering Create.\n");
-	char bufferCreate[TAMBUFFER] ;
+	char bufferCreate[TAMBUFFER];
 	mapeoMemoria (4, bufferCreate);
-
 	/*!!!!!!!!!!NOTA: Cambiar Permisos lectura, escritura */
 	//S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
 	//S_IRWXO->otros tienen permiso de escritura, lectura y ejecucion
@@ -214,46 +227,30 @@ void Nachos_Create() {  //System call # 4
 	int idFileUnix = creat (bufferCreate, S_IRWXU | S_IRWXO | S_IRWXG);
 
 	DEBUG ('a', "File created on UNIX with id: %d\n", idFileUnix);
-	int idFileNachos = currentThread->tablaFiles->Open (idFileUnix);
-	currentThread->tablaFiles->addThread();
+	int idFileNachos = currentThread->m_filesTable->Open (idFileUnix);
+	currentThread->m_filesTable->addThread();
 	DEBUG ('a', "File created on Nachos with id: %d\n", idFileNachos);
 	machine->WriteRegister (2, idFileNachos);
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting Create.\n");
 
-}//Nachos_Create
+} //Nachos_Create
 
 /* Open the Nachos file "name", and return an "OpenFileId" that can
  * be used to read and write to the file.
+ *
+ * OpenFileId Open(char *name);
  */
 void Nachos_Open() {    // System call # 5
 	DEBUG ('a', "Entering Open.\n");
-	int rutaVirtual = machine->ReadRegister (4);
-	int rutaFisica;
 	char bufferOpen[TAMBUFFER];
-	int i = 0;
-	bool seguir = true;
-	do {
-		machine->ReadMem (rutaVirtual, 1, &rutaFisica);
-		if ( (char) rutaFisica != '\0') {
-			bufferOpen[i] = (char) rutaFisica;
-			++rutaVirtual;
-			++i;
-		}
-		else {
-			bufferOpen[i] = (char) rutaFisica;
-			seguir = false;
-		}
-	}
-	while (seguir);
-	printf ("File name %s opened.\n", bufferOpen);
+	mapeoMemoria (4, bufferOpen);
 
-	OpenFileId idFileUnix = open (bufferOpen, O_RDWR);
+	OpenFileId idFileUnix = open (bufferOpen, O_RDWR); // Abre archivo (SysCall de UNIX)
 
 	if (idFileUnix != ERROR) {
-		int idFileNachos = currentThread->tablaFiles->Open (idFileUnix);
-		currentThread->tablaFiles->addThread();
-		machine->WriteRegister (2, idFileNachos);
+		int idFileNachos = currentThread->m_filesTable->Open (idFileUnix); // Lo inserta en la tabla de archivos
+		machine->WriteRegister (2, idFileNachos); // El método devuelve el índice del archivo en la tabla nachOS
 	}
 	else {
 		printf ("ERROR: File doesn't exist.\n");
@@ -268,15 +265,17 @@ void Nachos_Open() {    // System call # 5
  * long enough, or if it is an I/O device, and there aren't enough
  * characters to read, return whatever is available (for I/O devices,
  * you should always wait until you can return at least one character).
+ *
+ * int Read(char *buffer, int size, OpenFileId id);
  */
 void Nachos_Read() {    //System call # 6
 	DEBUG ('a', "Entering Nachos_Read.\n");
-	int size = machine->ReadRegister (5);           //tamano de lo que voy a leer
-	OpenFileId idFileNachOS = machine->ReadRegister (6);  //le indica si lee de consola o de un archivo
-	char bufferRead[TAMBUFFER] = {'\0'};
+	int size = machine->ReadRegister (5);				 // tamano de lo que voy a leer
+	OpenFileId idFileNachOS = machine->ReadRegister (6); // el índice del archivo
+	char bufferRead[TAMBUFFER];
 
-	int cantidadTotal = 0;
-	semMutexAux.P();   //Solo yo puedo leer
+	int cantidadTotalBytesLeidos = 0;
+	semMutexAux.P();   // lock
 	switch (idFileNachOS) {
 		//lecturas de consola
 		case ConsoleOutput:
@@ -284,21 +283,22 @@ void Nachos_Read() {    //System call # 6
 			printf ("ERROR: User can't read from console output.\n");
 			break;
 		case ConsoleInput:
-			cantidadTotal = read (1, bufferRead, size);  //lee con el read de UNIX
-			machine->WriteRegister (2, cantidadTotal);
-			stats->numConsoleCharsRead += cantidadTotal;
+			cantidadTotalBytesLeidos = read (0, bufferRead, size);  // lee en el stdin
+			machine->WriteRegister (2, cantidadTotalBytesLeidos);
+			stats->numConsoleCharsRead += cantidadTotalBytesLeidos;
 			break;
 		case ConsoleError:
 			printf ("ERROR: Console error %d.\n", -1);
 			break;
 		default:
 			//lectura de archivos
-			if (currentThread->tablaFiles->isOpened (idFileNachOS)) { //esta abierto?
-				int idUnix = currentThread->tablaFiles->getUnixHandle (idFileNachOS);
-				cantidadTotal = read (idUnix, bufferRead, size);   //lee con el read de UNIX
-				machine->WriteRegister (2, cantidadTotal);
+			if (currentThread->m_filesTable->isOpened (idFileNachOS)) { //esta abierto?
+				int idUnix = currentThread->m_filesTable->getUnixHandle (idFileNachOS);
+				cantidadTotalBytesLeidos = read (idUnix, bufferRead, size);   //lee con el read de UNIX
+				machine->WriteRegister (2, cantidadTotalBytesLeidos);
+				// Copia el contenido del buffer local al buffer proporcionado por el usuario
 				bool flag = true;
-				for (int i = 0; i < cantidadTotal && flag; ++i) {
+				for (int i = 0; i < cantidadTotalBytesLeidos && flag; ++i) {
 					int chTmp = (int) bufferRead[i];
 					machine->WriteMem (machine->ReadRegister (4) + i, 1, chTmp);
 					if ( (char) chTmp == '\0') {
@@ -312,12 +312,15 @@ void Nachos_Read() {    //System call # 6
 				printf ("ERROR: File doesn't exist.\n");
 			}
 	}
-	semMutexAux.V();
+	semMutexAux.V(); // release
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting Nachos_Read.\n");
 } //Nachos_Read
 
-/* Write "size" bytes from "buffer" to the open file. */
+/* Write "size" bytes from "buffer" to the open file.
+ *
+ * void Write(char *buffer, int size, OpenFileId id);
+ */
 void Nachos_Write() {   // System call 7
 	DEBUG ('a', "System call Write.\n");
 	int size = machine->ReadRegister (5);	// Read size to write
@@ -325,23 +328,23 @@ void Nachos_Write() {   // System call 7
 	int cantCaracteres = 0;
 	char bufferWrite[TAMBUFFER];
 
-	mapeoMemoria (4, bufferWrite); // Deja lo que se tiene que escribir en bufferWrite
-	semMutexAux.P();   //solo yo puedo escribir
+	mapeoMemoria (4, bufferWrite); // Deja el contenido que se tiene que escribir en bufferWrite
+	semMutexAux.P();   // lock
 	switch (idFileNachOS) {
-		case  ConsoleInput:	// User could not write to standard input
+		case ConsoleInput:	// User could not write to standard input
 			machine->WriteRegister (2, ERROR);
 			break;
-		case  ConsoleOutput:
+		case ConsoleOutput:
 			bufferWrite[ size ] = '\0';
 			stats->numConsoleCharsWritten += size;
-			printf ("%s \n", bufferWrite);
+			write (1, bufferWrite, size); // Escribe en stdout
 			break;
 		case ConsoleError: // This trick permits to write integers to console
 			printf ("%d\n", machine->ReadRegister (4));
 			break;
 		default:
-			if (currentThread->tablaFiles->isOpened (idFileNachOS)) {
-				write (currentThread->tablaFiles->getUnixHandle (idFileNachOS), bufferWrite, size);
+			if (currentThread->m_filesTable->isOpened (idFileNachOS)) {
+				write (currentThread->m_filesTable->getUnixHandle (idFileNachOS), bufferWrite, size);
 				machine->WriteRegister (2, cantCaracteres);
 				stats->numDiskWrites++;
 			}
@@ -349,7 +352,7 @@ void Nachos_Write() {   // System call 7
 				machine->WriteRegister (2, ERROR);
 			}
 	}
-	semMutexAux.V();
+	semMutexAux.V(); // Release
 	returnFromSystemCall(); // Update the PC registers
 	DEBUG ('a', "Exiting Write System Call.\n");
 
@@ -358,13 +361,13 @@ void Nachos_Write() {   // System call 7
 /* Close the file, we're done reading and writing to it. */
 void Nachos_Close() {       //System call # 8
 	DEBUG ('a', "Entering Close System Call.\n");
-	OpenFileId idHilo = machine->ReadRegister (4);
-	if (currentThread->tablaFiles->isOpened (idHilo)) {
-		int idUnix = currentThread->tablaFiles->getUnixHandle (idHilo);
-		int tmp = currentThread->tablaFiles->Close (idHilo);
+	OpenFileId idFile = machine->ReadRegister (4);
+	if (currentThread->m_filesTable->isOpened (idFile)) {
+		int idUnix = currentThread->m_filesTable->getUnixHandle (idFile);
+		int tmp = currentThread->m_filesTable->Close (idFile);
 		tmp = close (idUnix);
-		printf ("File closed.\n");
 		machine->WriteRegister (2, tmp);
+		DEBUG ('a', "File closed.\n");
 	}
 	else {
 		printf ("ERROR: Atempt to close a file that isn't opened.\n");
@@ -372,8 +375,8 @@ void Nachos_Close() {       //System call # 8
 	}
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting Close System Call.\n");
+} //Nachos_Close
 
-}//Nachos_Close
 
 /* User-level thread operations: Fork and Yield.  To allow multiple
  * threads to run within a user program.
@@ -381,18 +384,19 @@ void Nachos_Close() {       //System call # 8
 
 /* Fork a thread to run a procedure ("func") in the *same* address space
  * as the current thread.
+ *
+ * void Fork(void (*func)());
  */
 void Nachos_Fork() {    //System call # 9
 	DEBUG ('a', "Entering Fork System call\n");
 	Thread* nuevoHilo = new Thread ("Hijo");    //nuevo proceso hijo
-	nuevoHilo->tablaFiles = currentThread->tablaFiles;  //NachosOpenFilesTable tiene sobrecargado el operador = entonces no hay bronca :D
-	int idHilo = currentThread->tablaProcesos->Open ( (long) nuevoHilo); //agrega el hilo nuevo a la tabla de procesos
-	currentThread->tablaFiles->addThread();
-	currentThread->tablaProcesos->addThread();
+	nuevoHilo->m_filesTable = currentThread->m_filesTable; // Se copian lo archivos abiertos
+	int idHilo = currentThread->m_processTable->Open ( (long) nuevoHilo); //agrega el hilo nuevo a la tabla de procesos
+	currentThread->m_processTable->addThread();
 	nuevoHilo->space = new AddrSpace (currentThread->space); // Asigna el espacio a al hijo (DS y CS = father. SS independiente)
 	DEBUG ('a', "Calls ForkHelper.\n");
 	int tmp = machine->ReadRegister (4);
-	nuevoHilo->Fork (AyudanteFork, &tmp);
+	nuevoHilo->Fork (forkAux, &tmp);
 
 	returnFromSystemCall();
 
@@ -407,18 +411,20 @@ void Nachos_Yield() {               //System call # 10
 	currentThread->Yield();
 	returnFromSystemCall(); // !
 	DEBUG ('a', "Exiting Yield.\n");
-}//Nachos_Yield
+} //Nachos_Yield
 
 /* SemCreate creates a semaphore initialized to initval value
  * return the semaphore id
+ *
+ * int SemCreate( int initval );
  */
 void Nachos_SemCreate() {   //System call # 11
 	DEBUG ('a', "Entering SemCreate.\n");
 
 	int valSem = machine->ReadRegister (4);     //lee del registro de MIPS
 	Semaphore* semaforo = new Semaphore ("Semaforo nuevo", valSem);  //crea el semaforo de NachOS
-	int idSem = currentThread->tablaFiles->Open ( (long) semaforo);
-	currentThread->tablaFiles->addThread();
+	int idSem = currentThread->m_filesTable->Open ( (long) semaforo);
+	currentThread->m_filesTable->addThread();
 
 	machine->WriteRegister (2, idSem);     //retorna el el id del semaforo creado como parametro
 	returnFromSystemCall();
@@ -426,35 +432,44 @@ void Nachos_SemCreate() {   //System call # 11
 
 }//Nachos_SemCreate
 
-/* SemDestroy destroys a semaphore identified by id */
+/* SemDestroy destroys a semaphore identified by id
+ *
+ * int SemDestroy( int SemId );
+ */
 void Nachos_SemDestroy() {  //System call # 12
 	DEBUG ('a', "Entering SemDestroy.\n");
 	int idSem = machine->ReadRegister (4);     //lee el parametro
-	Semaphore* semaforo = (Semaphore*) currentThread->tablaFiles->getUnixHandle (idSem);
-	currentThread->tablaFiles->Close (idSem);
-	currentThread->tablaFiles->delThread();
+	Semaphore* semaforo = (Semaphore*) currentThread->m_filesTable->getUnixHandle (idSem);
+	currentThread->m_filesTable->Close (idSem);
+	currentThread->m_filesTable->delThread();
 	semaforo->Destroy();
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemDestroy.\n");
 
 }//Nachos_SemDestroy
 
-/* SemSignal signals a semaphore, awakening some other thread if necessary */
+/* SemSignal signals a semaphore, awakening some other thread if necessary
+ *
+ * int SemSignal( int SemId );
+ */
 void Nachos_SemSignal() {   //System call # 13
 	DEBUG ('a', "Entering SemSignal.\n");
 	int idSem = machine->ReadRegister (4);
-	Semaphore* semaforo = (Semaphore*) currentThread->tablaFiles->getUnixHandle (idSem);
+	Semaphore* semaforo = (Semaphore*) currentThread->m_filesTable->getUnixHandle (idSem);
 	semaforo->V();
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemSignal.\n");
 
 }//Nachos_SemSignal
 
-/* SemWait waits a semaphore, some other thread may awake if one blocked */
+/* SemWait waits a semaphore, some other thread may awake if one blocked
+ *
+ * int SemWait( int SemId );
+ */
 void Nachos_SemWait() {     //System call # 14
 	DEBUG ('a', "Entering SemWait.\n");
 	int idSem = machine->ReadRegister (4);
-	Semaphore* semaforo = (Semaphore*) currentThread->tablaFiles->getUnixHandle (idSem);
+	Semaphore* semaforo = (Semaphore*) currentThread->m_filesTable->getUnixHandle (idSem);
 	semaforo->P();
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemWait.\n");

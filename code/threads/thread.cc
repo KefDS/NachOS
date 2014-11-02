@@ -34,9 +34,9 @@ const unsigned STACK_FENCEPOST = 0xdeadbeef;
 
 Thread::Thread (const char* threadName) {
 	name = threadName;
-	tablaProcesos = new NachosOpenFilesTable();		// Procesos
-	tablaFiles = new NachosOpenFilesTable();		// Archivos
-	tablaSemaforos = new NachosOpenFilesTable();	// Semaforos
+	m_processTable = new NachosOpenFilesTable();		// Procesos
+	m_filesTable = new NachosOpenFilesTable();		// Archivos
+	m_semaphoreTable = new NachosOpenFilesTable();	// Semaforos
 	stackTop = NULL;
 	stack = NULL;
 	status = JUST_CREATED;

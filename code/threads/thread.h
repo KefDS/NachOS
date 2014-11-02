@@ -1,4 +1,4 @@
-// thread.h 
+// thread.h
 //	Data structures for managing threads.  A thread represents
 //	sequential execution of code within a program.
 //	So the state of a thread includes the program counter,
@@ -81,9 +81,9 @@ class Thread {
     HostMemoryAddress machineState[MachineStateSize];	// all registers except for stackTop
   public:
 
-    NachosOpenFilesTable* tablaProcesos;
-    NachosOpenFilesTable* tablaFiles;
-    NachosOpenFilesTable* tablaSemaforos;
+	NachosOpenFilesTable* m_processTable;
+	NachosOpenFilesTable* m_filesTable;
+	NachosOpenFilesTable* m_semaphoreTable;
 
     Thread(const char* debugName);	// initialize a Thread 
     ~Thread(); 				// deallocate a Thread

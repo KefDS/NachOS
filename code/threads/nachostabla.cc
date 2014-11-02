@@ -9,73 +9,62 @@
 
 #include "nachostabla.h"
 
-
-NachosOpenFilesTable::NachosOpenFilesTable() {
-
-	openFiles = new int (TAM_VECTOR);
-	for (int i = 0; i < TAM_VECTOR; ++i) { //pone todos los datos del vector en -1
-		openFiles[i] = BANDERA;
-	}
-	usage = 2;
-
+NachosOpenFilesTable::NachosOpenFilesTable()
+	: openFiles (new int[TAM_VECTOR])
+	, openFilesMap (new BitMap(TAM_VECTOR))
+	, usage (0) {
+	// Marca como ocupado las 3 primeras pocisiones (stdin, stdout, stderr)
+	openFilesMap->Mark (0);
+	openFilesMap->Mark (1);
+	openFilesMap->Mark (2);
 }
 
 NachosOpenFilesTable::~NachosOpenFilesTable() {
-	if (usage > 0) {
-		delete[] openFiles;
-		usage = 0;
-	}
+	delete [] openFiles;
+	delete openFilesMap;
 }
 
 NachosOpenFilesTable& NachosOpenFilesTable::operator= (const NachosOpenFilesTable& other) {
 	for (int i = 0; i < TAM_VECTOR; ++i) {
 		openFiles[i] = other.openFiles[i];
 	}
-	usage = other.usage;    //los archivos que hay abiertos
-	++usage;                //mas yo
+	*(openFilesMap) = *(other.openFilesMap);
+	usage = 0;
 	return *this;
 }
 
 int NachosOpenFilesTable::Open (int UnixHandle) {
-	int posicion = 3;
-	while (openFiles[posicion] != BANDERA && posicion < TAM_VECTOR) { //busca el primer campo que este vacio
-		++posicion;
+	int i = BANDERA;
+	if (!isOpened (UnixHandle)) {
+		i = openFilesMap->Find();	// Encuentra un espacio libre
+		openFiles[i] = UnixHandle;	// Lo inserta en la tabla
 	}
-	if (posicion < TAM_VECTOR) {
-		openFiles[posicion] = UnixHandle;
-		return posicion;
-	}
-	else {
-		return -1;  //no hay campo
-	}
+	return i; // Devuelve el índice donde se encuentra el archivo, o -1 si no encuentra campo
 }
 
 int NachosOpenFilesTable::Close (int NachosHandle) {
-	if (NachosHandle <= usage) {
-		openFiles[NachosHandle] = BANDERA;
-		return 0;
+	int control = BANDERA;
+	if (openFilesMap->Test (NachosHandle)) {
+		openFilesMap->Clear (NachosHandle); // Hace que el bitmap ponga ese índice como libre
+		control = 1;
 	}
-	else {
-		return -1;
-	}
+	return control;
 }
 
 bool NachosOpenFilesTable::isOpened (int NachosHandle) {
-	if (openFiles[NachosHandle] != BANDERA) {
-		return true;
+	bool resultado = false;
+	if (openFilesMap->Test (NachosHandle)) {
+		resultado = true;
 	}
-	else {
-		return false;
-	}
+	return resultado;
 }
 
 int NachosOpenFilesTable::getUnixHandle (int NachosHandle) {
-	if (NachosHandle <= usage) {
-		return openFiles[NachosHandle];
+	int index = BANDERA;
+	if (isOpened (NachosHandle)) {
+		index = openFiles[NachosHandle];
 	}
-	else {
-		return -1;
-	}
+	return index;
 }
 
 void NachosOpenFilesTable::addThread() {
@@ -84,10 +73,6 @@ void NachosOpenFilesTable::addThread() {
 
 void NachosOpenFilesTable::delThread() {
 	--usage;
-}
-
-void NachosOpenFilesTable::semOpen (int posicion, long sem) {
-	openFiles[posicion] = sem;
 }
 
 int NachosOpenFilesTable::getUsage() {
