@@ -3,4 +3,10 @@
 *.o
 *~
 *.dep
+*.DS_Store
+
+# Archivos específicos
+code/userprog/nachos.2
+code/userprog/nachos.1
+code/userprog/nachos
 
