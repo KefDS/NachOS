@@ -222,11 +222,13 @@ void Nachos_Create() {  //System call # 4
 	DEBUG ('a', "Entering Create.\n");
 	char bufferCreate[TAMBUFFER];
 	mapeoMemoria (4, bufferCreate);
-	/*!!!!!!!!!!NOTA: Cambiar Permisos lectura, escritura */
-	//S_IRWXU->permiso (al dueño) de lectura, ejecucion y escritura
-	//S_IRWXO->otros tienen permiso de escritura, lectura y ejecucion
-	//S_IRWXG->el grupo tiene permiso de escritura, lectura y ejecucion
-	int idFileUnix = creat (bufferCreate, S_IRWXU | S_IRWXO | S_IRWXG);
+    //S_IRUSR -> usuario tiene permiso de lectura
+    //S_IWUSR -> usuario tiene permisos de escritura
+    //S_IRGRP -> grupo triene permisos de lectura
+    //S_IWGRP -> grupo tiene permisos de escritura
+    //S_IROTH -> otros tienen permisos de lectura
+    //S_IWOTH -> otros tienen permisos de escritura
+    int idFileUnix = creat (bufferCreate, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
 
 	DEBUG ('a', "File created on UNIX with id: %d\n", idFileUnix);
 	int idFileNachos = currentThread->m_filesTable->Open (idFileUnix);
