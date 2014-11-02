@@ -10,9 +10,10 @@
 #include "nachostabla.h"
 
 NachosOpenFilesTable::NachosOpenFilesTable()
-	: openFiles (new int[TAM_VECTOR])
+	: openFiles (new long int[TAM_VECTOR])
 	, openFilesMap (new BitMap (TAM_VECTOR))
-	, usage (new int (0)) {
+	, usage (new int (0))
+{
 	// Marca como ocupado las 3 primeras pocisiones (stdin, stdout, stderr)
 	openFilesMap->Mark (0);
 	openFilesMap->Mark (1);
@@ -62,15 +63,15 @@ int NachosOpenFilesTable::getUnixHandle (int NachosHandle) {
 }
 
 void NachosOpenFilesTable::addThread() {
-	++usage;
+	++(*(usage));
 }
 
 void NachosOpenFilesTable::delThread() {
-	--usage;
+	--(*(usage));
 }
 
 int NachosOpenFilesTable::getUsage() {
-	return *usage;
+	return *(usage);
 }
 
 void NachosOpenFilesTable::Print() {

@@ -108,16 +108,18 @@ void execAux (void* tmp) {
 }
 
 /* Asistete del SysCall fork */
-void forkAux (void* parametro) {     //Metodo auxiliar que usa Fork
-	int* p = (int*) parametro;
+void forkAux (void* address) {     //Metodo auxiliar que usa Fork
 	AddrSpace* space;
+
 	space = currentThread->space;
 	space->InitRegisters();
 	space->RestoreState();
 
+	// Set the return address for this thread to the same as the main thread
+	// This will lead this thread to call the exit system call and finish
 	machine->WriteRegister (RetAddrReg, 4);
-	machine->WriteRegister (PCReg, *p);
-	machine->WriteRegister (NextPCReg, *p + 4);
+	machine->WriteRegister (PCReg, (long) address);
+	machine->WriteRegister (NextPCReg, (long) address + 4);
 	machine->Run();                     // jump to the user progam
 	//ASSERT (false);
 }
@@ -389,14 +391,15 @@ void Nachos_Close() {       //System call # 8
  */
 void Nachos_Fork() {    //System call # 9
 	DEBUG ('a', "Entering Fork System call\n");
-	Thread* nuevoHilo = new Thread ("Hijo");    //nuevo proceso hijo
-	nuevoHilo->m_filesTable = currentThread->m_filesTable; // Se copian lo archivos abiertos
-	int idHilo = currentThread->m_processTable->Open ( (long) nuevoHilo); //agrega el hilo nuevo a la tabla de procesos
-	currentThread->m_processTable->addThread();
-	nuevoHilo->space = new AddrSpace (currentThread->space); // Asigna el espacio a al hijo (DS y CS = father. SS independiente)
+	Thread* newThread = new Thread ("Hilo Hijo");    //nuevo proceso hijo
+	newThread->m_filesTable = currentThread->m_filesTable; // Se copian los archivos abiertos
+	currentThread->m_filesTable->addThread(); // Un hijo está usando la tabla de archivos
+	newThread->space = new AddrSpace (currentThread->space); // Asigna el espacio a al hijo (DS y CS = father. SS independiente)
+
 	DEBUG ('a', "Calls ForkHelper.\n");
-	int tmp = machine->ReadRegister (4);
-	nuevoHilo->Fork (forkAux, &tmp);
+	void* tmp = (void*) machine->ReadRegister (4);
+	printf("Hola soy control\n");
+	newThread->Fork (forkAux, tmp);
 
 	returnFromSystemCall();
 

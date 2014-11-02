@@ -20,13 +20,11 @@ class NachosOpenFilesTable {
 		void delThread();		// If a user thread is using this table, delete it
 		int getUsage();		    //devuelve cuantos hilos hay en la tabla
 
-		NachosOpenFilesTable& operator= (const NachosOpenFilesTable& tablaOriginal); //para copiar NachosOpenFilesTable's
-
 		void Print();               // Print contents
 
 	private:
 		// Los miebros de datos estarán en memoria dinámica ya que serán compartidos por varios Threads
-		int* openFiles;			// A vector with user opened files
+		long int* openFiles;			// A vector with user opened files
 		BitMap* openFilesMap;	// A bitmap to control our vector
 		int* usage;				// How many threads are using this table
 };
