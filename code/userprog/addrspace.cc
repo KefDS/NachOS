@@ -36,17 +36,17 @@
 //	endian machine, and we're now running on a big endian machine.
 //----------------------------------------------------------------------
 
-static void SwapHeader(NoffHeader* noffH) {
-	noffH->noffMagic = WordToHost(noffH->noffMagic);
-	noffH->code.size = WordToHost(noffH->code.size);
-	noffH->code.virtualAddr = WordToHost(noffH->code.virtualAddr);
-	noffH->code.inFileAddr = WordToHost(noffH->code.inFileAddr);
-	noffH->initData.size = WordToHost(noffH->initData.size);
-	noffH->initData.virtualAddr = WordToHost(noffH->initData.virtualAddr);
-	noffH->initData.inFileAddr = WordToHost(noffH->initData.inFileAddr);
-	noffH->uninitData.size = WordToHost(noffH->uninitData.size);
-	noffH->uninitData.virtualAddr = WordToHost(noffH->uninitData.virtualAddr);
-	noffH->uninitData.inFileAddr = WordToHost(noffH->uninitData.inFileAddr);
+static void SwapHeader (NoffHeader* noffH) {
+	noffH->noffMagic = WordToHost (noffH->noffMagic);
+	noffH->code.size = WordToHost (noffH->code.size);
+	noffH->code.virtualAddr = WordToHost (noffH->code.virtualAddr);
+	noffH->code.inFileAddr = WordToHost (noffH->code.inFileAddr);
+	noffH->initData.size = WordToHost (noffH->initData.size);
+	noffH->initData.virtualAddr = WordToHost (noffH->initData.virtualAddr);
+	noffH->initData.inFileAddr = WordToHost (noffH->initData.inFileAddr);
+	noffH->uninitData.size = WordToHost (noffH->uninitData.size);
+	noffH->uninitData.virtualAddr = WordToHost (noffH->uninitData.virtualAddr);
+	noffH->uninitData.inFileAddr = WordToHost (noffH->uninitData.inFileAddr);
 }
 
 //----------------------------------------------------------------------
@@ -63,32 +63,33 @@ static void SwapHeader(NoffHeader* noffH) {
 //
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
-AddrSpace::AddrSpace(OpenFile* executable) {
+AddrSpace::AddrSpace (OpenFile* executable) {
 	NoffHeader noffH;
 
-	executable->ReadAt((char*)&noffH, sizeof(noffH), 0);
-	if((noffH.noffMagic != NOFFMAGIC) &&
-			(WordToHost(noffH.noffMagic) == NOFFMAGIC))
-	{ SwapHeader(&noffH); }
-	ASSERT(noffH.noffMagic == NOFFMAGIC);
+	executable->ReadAt ( (char*) &noffH, sizeof (noffH), 0);
+	if ( (noffH.noffMagic != NOFFMAGIC) &&
+			(WordToHost (noffH.noffMagic) == NOFFMAGIC)) {
+		SwapHeader (&noffH);
+	}
+	ASSERT (noffH.noffMagic == NOFFMAGIC);
 
 	// how big is address space?
 	unsigned int size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;
 	// to leave room for the stack
-	numPages = divRoundUp(size, PageSize);
+	numPages = divRoundUp (size, PageSize);
 	size = numPages * PageSize;
 
-	ASSERT(numPages <= NumPhysPages);		// check we're not trying
+	ASSERT (numPages <= NumPhysPages);		// check we're not trying
 	// to run anything too big --
 	// at least until we have
 	// virtual memory
 
-	DEBUG('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
+	DEBUG ('a', "Initializing address space, num pages %d, size %d\n", numPages, size);
 
 	// first, set up the translation
 	pageTable = new TranslationEntry[numPages];
 
-	for(unsigned int i = 0; i < numPages; i++) {
+	for (unsigned int i = 0; i < numPages; i++) {
 		pageTable[i].virtualPage = i;
 		pageTable[i].physicalPage = MiMapa->Find(); // Buscará en la memoria física, páginas disponibles
 		pageTable[i].valid = true;
@@ -99,35 +100,35 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 		// pages to be read-only
 	}
 
-	DEBUG('n', "Code Segment asignation.\n");
-	int cantUsadaCodeSeg = divRoundUp(noffH.code.size, PageSize);
-	if(noffH.code.size > 0) {
+	DEBUG ('n', "Code Segment asignation.\n");
+	int cantUsadaCodeSeg = divRoundUp (noffH.code.size, PageSize);
+	if (noffH.code.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el CS
-		for(unsigned int i = 0; i < cantUsadaCodeSeg; ++i) {
+		for (unsigned int i = 0; i < cantUsadaCodeSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
-			DEBUG('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", i, PageSize * i, noffH.code.inFileAddr);
-			executable->ReadAt(&(machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.code.inFileAddr));
+			DEBUG ('a', "Page number: %i, Used bytes: %i noffH.code.InFileAdr %d\n", i, PageSize * i, noffH.code.inFileAddr);
+			executable->ReadAt (& (machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.code.inFileAddr));
 		}
 	}
 
-	DEBUG('n', "Used Data Segment asignation.\n");
-	int cantUsadaDataSeg = divRoundUp(noffH.initData.size, PageSize);
-	if(noffH.initData.size > 0) {
+	DEBUG ('n', "Used Data Segment asignation.\n");
+	int cantUsadaDataSeg = divRoundUp (noffH.initData.size, PageSize);
+	if (noffH.initData.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el DS
-		for(unsigned int i = cantUsadaCodeSeg; i < cantUsadaDataSeg; ++i) {
+		for (unsigned int i = cantUsadaCodeSeg; i < cantUsadaDataSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
-			DEBUG('a', "Page number: %i, Used bytes: %i\n", i, PageSize * i);
-			executable->ReadAt(&(machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.initData.inFileAddr));
+			DEBUG ('a', "Page number: %i, Used bytes: %i\n", i, PageSize * i);
+			executable->ReadAt (& (machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.initData.inFileAddr));
 		}
 	}
 
-	DEBUG('n', "Unused Data Segment asignation.\n");
-	int cantUsadaDataUniSeg = divRoundUp(noffH.uninitData.size, PageSize);
-	if(noffH.uninitData.size > 0) {
+	DEBUG ('n', "Unused Data Segment asignation.\n");
+	int cantUsadaDataUniSeg = divRoundUp (noffH.uninitData.size, PageSize);
+	if (noffH.uninitData.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el segmentos de datos sin inicializar
-		for(unsigned int i = cantUsadaDataSeg; i < cantUsadaDataUniSeg; ++i) {
+		for (unsigned int i = cantUsadaDataSeg; i < cantUsadaDataUniSeg; ++i) {
 			int pagina = pageTable[i].physicalPage;
-			bzero(&(machine->mainMemory[pagina * PageSize]), PageSize);
+			bzero (& (machine->mainMemory[pagina * PageSize]), PageSize);
 		}
 	}
 	/*
@@ -144,19 +145,19 @@ AddrSpace::AddrSpace(OpenFile* executable) {
 // Constructor para uso del fork
 // Hace que papa e hijo compartan datos y codigo pero le hace una nueva pila al hijo
 //----------------------------------------------------------------------
-AddrSpace::AddrSpace(AddrSpace* espacioPadre) {
-	int tamPila = divRoundUp(UserStackSize, PageSize);
+AddrSpace::AddrSpace (AddrSpace* espacioPadre) {
+	int tamPila = divRoundUp (UserStackSize, PageSize);
 	numPages = espacioPadre->numPages;
-	ASSERT(numPages <= (unsigned int)MiMapa->NumClear());
+	ASSERT (numPages <= (unsigned int) MiMapa->NumClear());
 	pageTable = new TranslationEntry[numPages];
-	for(unsigned int i = 0; i < numPages; ++i) {
+	for (unsigned int i = 0; i < numPages; ++i) {
 		pageTable[i].virtualPage = i; // Como es virtual es lineal (0,1,2,3...)
-		if(i < numPages - tamPila) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
+		if (i < numPages - tamPila) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
 			pageTable[i].physicalPage = espacioPadre->pageTable[i].physicalPage; // Comparten los mismas páginas
 		}
 		else {
 			pageTable[i].physicalPage = MiMapa->Find(); // Busca espacio libre para asignar el espacio de pila
-			bzero(&(machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize);
+			bzero (& (machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize);
 		}
 		pageTable[i].valid = true;
 		pageTable[i].use = false;
@@ -185,21 +186,22 @@ AddrSpace::~AddrSpace() {
 void AddrSpace::InitRegisters() {
 	int i;
 
-	for(i = 0; i < NumTotalRegs; i++)
-	{ machine->WriteRegister(i, 0); }
+	for (i = 0; i < NumTotalRegs; i++) {
+		machine->WriteRegister (i, 0);
+	}
 
 	// Initial program counter -- must be location of "Start"
-	machine->WriteRegister(PCReg, 0);
+	machine->WriteRegister (PCReg, 0);
 
 	// Need to also tell MIPS where next instruction is, because
 	// of branch delay possibility
-	machine->WriteRegister(NextPCReg, 4);
+	machine->WriteRegister (NextPCReg, 4);
 
 	// Set the stack register to the end of the address space, where we
 	// allocated the stack; but subtract off a bit, to make sure we don't
 	// accidentally reference off the end!
-	machine->WriteRegister(StackReg, numPages * PageSize - 16);
-	DEBUG('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
+	machine->WriteRegister (StackReg, numPages * PageSize - 16);
+	DEBUG ('a', "Initializing stack register to %d\n", numPages * PageSize - 16);
 }
 
 //----------------------------------------------------------------------
@@ -209,8 +211,8 @@ void AddrSpace::InitRegisters() {
 //
 //	For now, nothing!
 //----------------------------------------------------------------------
-void AddrSpace::SaveState()
-{}
+void AddrSpace::SaveState() {
+}
 
 //----------------------------------------------------------------------
 // AddrSpace::RestoreState
