@@ -468,7 +468,7 @@ void Nachos_SemDestroy() {  //System call # 12
     DEBUG ('f', "Entering SemDestroy.\n");
     int idSem = machine->ReadRegister (4);     //lee el parametro
     int retorna = ERROR;
-    if(openSems->Test(idSem) == true;){
+    if(openSems->Test(idSem) == true){
         delete semVec[idSem];
         openSems->Mark(idSem);
         retorna = VACIO;
@@ -487,7 +487,7 @@ void Nachos_SemSignal() {   //System call # 13
     DEBUG ('f', "Entering SemSignal.\n");
 	int idSem = machine->ReadRegister (4);
     int retorna = ERROR;
-    if(semAbiertos->Test(idSem) == true){
+    if(openSems->Test(idSem) == true){
         semVec[idSem]->V();
         retorna = VACIO;
     }
@@ -505,7 +505,7 @@ void Nachos_SemWait() {     //System call # 14
     DEBUG ('f', "Entering SemWait.\n");
     int idSem = machine->ReadRegister (4);
     int retorna = ERROR;
-    if(semAbiertos->Test(idSem) == true){
+    if(openSems->Test(idSem) == true){
         semVec[idSem]->P();
         retorna = VACIO;
     }
