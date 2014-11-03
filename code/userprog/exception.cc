@@ -95,6 +95,7 @@ void mapeoMemoria (int registro, char* buffer) {
 /* Asistete del SysCall exec */
 void execAux (void* executableName) {
 	// Tomado de StartProcess en progtest.cc
+    DEBUG('f', "Entre a execAux.\n");
 	OpenFile* p = (OpenFile*) executableName;
 	if (p == NULL) {
 		printf ("Unable to open file");
@@ -105,8 +106,9 @@ void execAux (void* executableName) {
 
 	currentThread->space->InitRegisters(); // set the initial register values
 	currentThread->space->RestoreState();  // load page table register
+    DEBUG('f', "Justo antes de correr el programa.\n");
 	machine->Run(); // jump to the user progam
-	ASSERT (false);			// machine->Run never returns;
+    ASSERT (false);			// machine->Run never returns;
 	// the address space exits
 	// by doing the syscall "exit"
 }
@@ -180,18 +182,19 @@ void Nachos_Exec() {    //System call # 2
 	char bufferExec_Aux[TAMBUFFER];
 	DEBUG ('a', "Entering exec System call\n");
 	mapeoMemoria (4, bufferExec_Aux);
-	printf ("Buffer tiene: %s\n", bufferExec_Aux); // Temporal
+    DEBUG('f',"Buffer tiene: %s\n", bufferExec_Aux); // Temporal
 
 	// Trata de abrir la ruta indicada
 	OpenFile* executable = fileSystem->Open (bufferExec_Aux);
 	if (executable == NULL) {
-		printf ("Unable to open file\n");
+        printf ("Unable to open file %s\n", bufferExec_Aux);
 		machine->WriteRegister (2, ERROR);
 		return;
 	}
 
 	Thread* newThread = new Thread ("New Executable");    //nuevo proceso hijo
-	newThread->Fork (execAux, (void*) executable);
+    DEBUG('f', "Antes de llamar a Fork de thread.\n");
+    newThread->Fork (execAux, (void*) executable);
 	//machine->WriteRegister (2, 0); // !
 	returnFromSystemCall();
 } //Nachos_Exec
