@@ -32,6 +32,7 @@
 #define ERROR -1
 #define TAMBUFFER 1024
 #define VACIO 0
+#define CANTSEMS 60
 
 #include "copyright.h"
 #include "system.h"
@@ -70,6 +71,8 @@
 //	are in machine.h.
 //----------------------------------------------------------------------
 Semaphore semMutexAux ("Semamoro para bloquear secciones criticas", 1);
+Semaphore* semVec[CANTSEMS];
+BitMap* openSems = new BitMap(CANTSEMS);
 
 // Métodos Auxiliares
 
@@ -236,7 +239,7 @@ void Nachos_Join() {    //System call # 3
  * void Create(char *name)
 */
 void Nachos_Create() {  //System call # 4
-	DEBUG ('a', "Entering Create.\n");
+    DEBUG ('f', "Entering Create.\n");
 	char bufferCreate[TAMBUFFER];
 	mapeoMemoria (4, bufferCreate);
 	//S_IRUSR -> usuario tiene permiso de lectura
@@ -247,13 +250,13 @@ void Nachos_Create() {  //System call # 4
 	//S_IWOTH -> otros tienen permisos de escritura
 	int idFileUnix = creat (bufferCreate, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
-	DEBUG ('a', "File created on UNIX with id: %d\n", idFileUnix);
+    DEBUG ('f', "File created on UNIX with id: %d\n", idFileUnix);
 	int idFileNachos = currentThread->m_filesTable->Open (idFileUnix);
 	currentThread->m_filesTable->addThread();
-	DEBUG ('a', "File created on Nachos with id: %d\n", idFileNachos);
+    DEBUG ('f', "File created on Nachos with id: %d\n", idFileNachos);
 	machine->WriteRegister (2, idFileNachos);
 	returnFromSystemCall();
-	DEBUG ('a', "Exiting Create.\n");
+    DEBUG ('f', "Exiting Create.\n");
 
 } //Nachos_Create
 
@@ -440,12 +443,16 @@ void Nachos_Yield() {               //System call # 10
  * int SemCreate( int initval );
  */
 void Nachos_SemCreate() {   //System call # 11
-	DEBUG ('a', "Entering SemCreate.\n");
+    DEBUG ('f', "Entering SemCreate.\n");
 
 	int valSem = machine->ReadRegister (4);     //lee del registro de MIPS
 	Semaphore* semaforo = new Semaphore ("Semaforo nuevo", valSem);  //crea el semaforo de NachOS
-	int idSem = currentThread->m_filesTable->Open ( (long) semaforo);
-	currentThread->m_filesTable->addThread();
+
+
+    int idSem = openSems->Find();
+    if(idSem != ERROR){
+        semVec[idSem] = semaforo;
+    }
 
 	machine->WriteRegister (2, idSem);     //retorna el el id del semaforo creado como parametro
 	returnFromSystemCall();
@@ -458,12 +465,15 @@ void Nachos_SemCreate() {   //System call # 11
  * int SemDestroy( int SemId );
  */
 void Nachos_SemDestroy() {  //System call # 12
-	DEBUG ('a', "Entering SemDestroy.\n");
-	int idSem = machine->ReadRegister (4);     //lee el parametro
-	Semaphore* semaforo = (Semaphore*) currentThread->m_filesTable->getUnixHandle (idSem);
-	currentThread->m_filesTable->Close (idSem);
-	currentThread->m_filesTable->delThread();
-	semaforo->Destroy();
+    DEBUG ('f', "Entering SemDestroy.\n");
+    int idSem = machine->ReadRegister (4);     //lee el parametro
+    int retorna = ERROR;
+    if(openSems->Test(idSem) == true;){
+        delete semVec[idSem];
+        openSems->Mark(idSem);
+        retorna = VACIO;
+    }
+    machine->WriteRegister(2, retorna);
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemDestroy.\n");
 
@@ -474,10 +484,14 @@ void Nachos_SemDestroy() {  //System call # 12
  * int SemSignal( int SemId );
  */
 void Nachos_SemSignal() {   //System call # 13
-	DEBUG ('a', "Entering SemSignal.\n");
+    DEBUG ('f', "Entering SemSignal.\n");
 	int idSem = machine->ReadRegister (4);
-	Semaphore* semaforo = (Semaphore*) currentThread->m_filesTable->getUnixHandle (idSem);
-	semaforo->V();
+    int retorna = ERROR;
+    if(semAbiertos->Test(idSem) == true){
+        semVec[idSem]->V();
+        retorna = VACIO;
+    }
+    machine->WriteRegister(2, retorna);
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemSignal.\n");
 
@@ -488,10 +502,15 @@ void Nachos_SemSignal() {   //System call # 13
  * int SemWait( int SemId );
  */
 void Nachos_SemWait() {     //System call # 14
-	DEBUG ('a', "Entering SemWait.\n");
-	int idSem = machine->ReadRegister (4);
-	Semaphore* semaforo = (Semaphore*) currentThread->m_filesTable->getUnixHandle (idSem);
-	semaforo->P();
+    DEBUG ('f', "Entering SemWait.\n");
+    int idSem = machine->ReadRegister (4);
+    int retorna = ERROR;
+    if(semAbiertos->Test(idSem) == true){
+        semVec[idSem]->P();
+        retorna = VACIO;
+    }
+    machine->WriteRegister(2, retorna);
+    returnFromSystemCall();
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemWait.\n");
 }//Nachos_SemWait
