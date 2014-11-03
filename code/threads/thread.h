@@ -81,9 +81,9 @@ class Thread {
     HostMemoryAddress machineState[MachineStateSize];	// all registers except for stackTop
   public:
 
-	NachosOpenFilesTable* m_processTable;
+    NachosOpenFilesTable* m_processTable;
 	NachosOpenFilesTable* m_filesTable;
-	NachosOpenFilesTable* m_semaphoreTable;
+    NachosOpenFilesTable* m_semaphoreTable;
 
     Thread(const char* debugName);	// initialize a Thread 
     ~Thread(); 				// deallocate a Thread

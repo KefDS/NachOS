@@ -150,24 +150,30 @@ void Nachos_Halt() {        //System call #0
  * void Exit(int status);
  */
 void Nachos_Exit() {    //System call # 1
-	DEBUG ('a', "Entering Exit");
-	int status = machine->ReadRegister (4);
-	currentThread->Yield();
-	currentThread->m_processTable->delThread();
-	if (VACIO == currentThread->m_processTable->getUsage()) {
+    DEBUG ('f', "Entering Exit\n");
+    int status = machine->ReadRegister(4);
+    DEBUG('f', "Antes de hacer Yield\n");
+    currentThread->Yield();
+    DEBUG('f', "Sali de Yield\n");
+    currentThread->m_filesTable->delThread();
+    DEBUG('f', "Antes de hacer Halt\n");
+    if (VACIO == currentThread->m_filesTable->getUsage()) {
 		Nachos_Halt();  //soy el ultimo, apague y vamonos
 	}
 	if (NULL != currentThread->space) {
 		delete currentThread->space;
 		currentThread->space = NULL;
 	}
-
+    DEBUG('f', "Antes de liberar los semaforos\n");
 	//tengo que liberar los semaforos que yo como proceso habia creado
-	while (VACIO != currentThread->m_semaphoreTable->getUsage()) {
-		Semaphore* semaforo = (Semaphore*) currentThread->m_semaphoreTable->getUnixHandle (status);
-		currentThread->m_semaphoreTable->delThread();
-		semaforo->V();  //lo libero
-	}
+    for(int i=0; i<CANTSEMS; ++i){
+        if(currentThread->m_semaphoreTable->isOpened(i)){
+            semVec[i]->V();
+            openSems->Clear(i);
+            currentThread->m_semaphoreTable->Close(i);
+            currentThread->m_semaphoreTable->delThread();
+        }
+    }
 
 	currentThread->Finish();    //termina el proceso
 	returnFromSystemCall();
@@ -209,10 +215,10 @@ void Nachos_Exec() {    //System call # 2
  */
 void Nachos_Join() {    //System call # 3
 	SpaceId sID = machine->ReadRegister (4);
-	DEBUG ('a', "Entering System Call Join.\n");
+    DEBUG ('f', "Entering System Call Join.\n");
 	Semaphore* semaforo = new Semaphore ("Semaforo join", 0);
 	//currentThread->m_semaphoreTable->semOpen (sID, (long) semaforo);
-	currentThread->m_semaphoreTable->addThread();
+    //currentThread->m_semaphoreTable->addThread();
 	if (currentThread->m_processTable->getUnixHandle (sID) == ERROR) {
 		machine->WriteRegister (2, ERROR);
 	}
@@ -452,6 +458,8 @@ void Nachos_SemCreate() {   //System call # 11
     int idSem = openSems->Find();
     if(idSem != ERROR){
         semVec[idSem] = semaforo;
+        currentThread->m_semaphoreTable->Open(idSem);//agrega el semaforo que creó a la tabla propia del hilo
+        currentThread->m_semaphoreTable->addThread();
     }
 
 	machine->WriteRegister (2, idSem);     //retorna el el id del semaforo creado como parametro
@@ -469,8 +477,10 @@ void Nachos_SemDestroy() {  //System call # 12
     int idSem = machine->ReadRegister (4);     //lee el parametro
     int retorna = ERROR;
     if(openSems->Test(idSem) == true){
+        currentThread->m_semaphoreTable->Close(idSem);
+        currentThread->m_semaphoreTable->delThread();
         delete semVec[idSem];
-        openSems->Mark(idSem);
+        openSems->Clear(idSem);
         retorna = VACIO;
     }
     machine->WriteRegister(2, retorna);
