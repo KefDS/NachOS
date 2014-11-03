@@ -36,7 +36,7 @@ Thread::Thread (const char* threadName) {
 	name = threadName;
 	//m_processTable = new NachosOpenFilesTable();		// Procesos
 	m_filesTable = new NachosOpenFilesTable();		// Archivos
-    m_semaphoreTable = new NachosOpenFilesTable();	// Semaforos
+	m_semaphoreTable = new NachosOpenFilesTable();	// Semaforos
 	stackTop = NULL;
 	stack = NULL;
 	status = JUST_CREATED;

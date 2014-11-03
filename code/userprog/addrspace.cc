@@ -139,7 +139,7 @@ AddrSpace::AddrSpace (AddrSpace* fatherSpace) {
 	pageTable = new TranslationEntry[numPages];
 	for (unsigned int i = 0; i < numPages; ++i) {
 		pageTable[i].virtualPage = i;	  // Como es virtual es lineal (0,1,2,3...)
-		if (i < (numPages - tamanioPila) ) { // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
+		if (i < (numPages - tamanioPila)) {  // Para el code & data segment realiza el if, el espacio del la pila se hará en el else
 			pageTable[i].physicalPage = fatherSpace->pageTable[i].physicalPage; // Comparten los mismas páginas
 		}
 		else {
