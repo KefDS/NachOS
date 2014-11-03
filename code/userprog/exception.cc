@@ -93,18 +93,22 @@ void mapeoMemoria (int registro, char* buffer) {
 }
 
 /* Asistete del SysCall exec */
-void execAux (void* tmp) {
-	int* executableName = (int*) tmp;
-	char bufferExec_Aux[TAMBUFFER];
-	mapeoMemoria (*executableName, bufferExec_Aux);
+void execAux (void* executableName) {
+	// Tomado de StartProcess en progtest.cc
+	OpenFile* p = (OpenFile*) executableName;
+	if (p == NULL) {
+		printf ("Unable to open file");
+		return;
+	}
 
-	OpenFile* executable = fileSystem->Open (bufferExec_Aux);
+	currentThread->space = new AddrSpace (p); // Crea el espacio para el ejecutable
 
-	currentThread->space = new AddrSpace (executable); // Crea el espacio para el ejecutable
-
-	currentThread->space->InitRegisters();
-	currentThread->space->RestoreState();
-	machine->Run();	// jump to the user progam
+	currentThread->space->InitRegisters(); // set the initial register values
+	currentThread->space->RestoreState();  // load page table register
+	machine->Run(); // jump to the user progam
+	ASSERT (false);			// machine->Run never returns;
+	// the address space exits
+	// by doing the syscall "exit"
 }
 
 /* Asistete del SysCall fork */
@@ -173,14 +177,24 @@ void Nachos_Exit() {    //System call # 1
  * SpaceId Exec(char *name);
  */
 void Nachos_Exec() {    //System call # 2
+	char bufferExec_Aux[TAMBUFFER];
 	DEBUG ('a', "Entering exec System call\n");
-	Thread* nuevoHilo = new Thread ("New Executable");    //nuevo proceso hijo
-	int tmp = machine->ReadRegister (4);
-	nuevoHilo->Fork (execAux, &tmp);
+	mapeoMemoria (4, bufferExec_Aux);
+	printf ("Buffer tiene: %s\n", bufferExec_Aux); // Temporal
 
-	machine->WriteRegister (2, 0); // !
+	// Trata de abrir la ruta indicada
+	OpenFile* executable = fileSystem->Open (bufferExec_Aux);
+	if (executable == NULL) {
+		printf ("Unable to open file\n");
+		machine->WriteRegister (2, ERROR);
+		return;
+	}
+
+	Thread* newThread = new Thread ("New Executable");    //nuevo proceso hijo
+	newThread->Fork (execAux, (void*) executable);
+	//machine->WriteRegister (2, 0); // !
 	returnFromSystemCall();
-}//Nachos_Exec
+} //Nachos_Exec
 
 /* Only return once the the user program "id" has finished.
  * Return the exit status.
@@ -222,13 +236,13 @@ void Nachos_Create() {  //System call # 4
 	DEBUG ('a', "Entering Create.\n");
 	char bufferCreate[TAMBUFFER];
 	mapeoMemoria (4, bufferCreate);
-    //S_IRUSR -> usuario tiene permiso de lectura
-    //S_IWUSR -> usuario tiene permisos de escritura
-    //S_IRGRP -> grupo triene permisos de lectura
-    //S_IWGRP -> grupo tiene permisos de escritura
-    //S_IROTH -> otros tienen permisos de lectura
-    //S_IWOTH -> otros tienen permisos de escritura
-    int idFileUnix = creat (bufferCreate, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP|S_IROTH|S_IWOTH);
+	//S_IRUSR -> usuario tiene permiso de lectura
+	//S_IWUSR -> usuario tiene permisos de escritura
+	//S_IRGRP -> grupo triene permisos de lectura
+	//S_IWGRP -> grupo tiene permisos de escritura
+	//S_IROTH -> otros tienen permisos de lectura
+	//S_IWOTH -> otros tienen permisos de escritura
+	int idFileUnix = creat (bufferCreate, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 
 	DEBUG ('a', "File created on UNIX with id: %d\n", idFileUnix);
 	int idFileNachos = currentThread->m_filesTable->Open (idFileUnix);
@@ -400,7 +414,6 @@ void Nachos_Fork() {    //System call # 9
 
 	DEBUG ('a', "Calls ForkHelper.\n");
 	void* tmp = (void*) machine->ReadRegister (4);
-	printf("Hola soy control\n");
 	newThread->Fork (forkAux, tmp);
 
 	returnFromSystemCall();
@@ -478,7 +491,6 @@ void Nachos_SemWait() {     //System call # 14
 	semaforo->P();
 	returnFromSystemCall();
 	DEBUG ('a', "Exiting SemWait.\n");
-
 }//Nachos_SemWait
 
 void ExceptionHandler (ExceptionType which) {
@@ -497,7 +509,6 @@ void ExceptionHandler (ExceptionType which) {
 					break;
 				case SC_Exec:
 					Nachos_Exec();              //System call # 2
-					ASSERT (false);
 					break;
 				case SC_Join:
 					Nachos_Join();              //System call # 3
