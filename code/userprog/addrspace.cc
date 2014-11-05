@@ -101,8 +101,8 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		// pages to be read-only
 	}
 
-	// Copia en memoria el Code Segment
-	DEBUG ('t', "Code Segment asignation.\n");
+    // Asignacion de memoria para el Code Segment
+    DEBUG ('a', "Code Segment asignation.\n");
 	unsigned int cantPagUsadas_CodeSeg = divRoundUp (noffH.code.size, PageSize);
 	if (noffH.code.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el CS
@@ -113,8 +113,8 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		}
 	}
 
-	// Copia en memoria el Data Segment
-	DEBUG ('t', "Used Data Segment asignation.\n");
+    // Asignacion de memoria para el Data Segment
+    DEBUG ('a', "Used Data Segment asignation.\n");
 	unsigned int cantPagUsadas_DataSeg = divRoundUp (noffH.initData.size, PageSize);
 	if (noffH.initData.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el DS
@@ -124,6 +124,17 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 			executable->ReadAt (& (machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.initData.inFileAddr));
 		}
 	}
+
+    // Asignacion de espacio para los datos no inicializados
+    DEBUG('a', "Unitialized Data Segment asignation.\n");
+    unsigned int cantPagUsadas_UninitDataSeg = divRoundUp(noffH.uninitData.size, PageSize);
+    if(noffH.uninitData.size > 0){
+        for(unsigned int i=cantPagUsadas_DataSeg; i<cantPagUsadas_UninitDataSeg; ++i){
+            int pagina = pageTable[i].physicalPage;
+            DEBUG('a', "Page number: %i, Used byte: %i\n", i, PageSize*i);
+            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.uninitData.inFileAddr));
+        }
+    }
 }
 
 //----------------------------------------------------------------------
