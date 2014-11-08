@@ -90,6 +90,19 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 	pageTable = new TranslationEntry[numPages];
 
 	// Se asigna la realción página virtual <--> página física
+#ifdef VM
+	//como es en memoria virtual, le pone la physicalPage en -1 y lo pone la página como inválida
+	for (unsigned int i = 0; i < numPages; ++i) {
+		pageTable[i].virtualPage = i; // Las páginas virtuales sí son lineales, el programa cree que los tiene contiguas
+		pageTable[i].physicalPage = -1; // la página física la pone en -1
+		pageTable[i].valid = false; //pone la página como inválida
+		pageTable[i].use = false;
+		pageTable[i].dirty = false;
+		pageTable[i].readOnly = false;  // if the code segment was entirely on
+		// a separate page, we could set its
+		// pages to be read-only
+	}
+#else
 	for (unsigned int i = 0; i < numPages; ++i) {
 		pageTable[i].virtualPage = i; // Las páginas virtuales sí son lineales, el programa cree que los tiene contiguas
 		pageTable[i].physicalPage = MiMapa->Find(); // Buscará páginas disponible en la memoria física
@@ -101,8 +114,8 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		// pages to be read-only
 	}
 
-    // Asignacion de memoria para el Code Segment
-    DEBUG ('a', "Code Segment asignation.\n");
+	// Asignacion de memoria para el Code Segment
+	DEBUG ('a', "Code Segment asignation.\n");
 	unsigned int cantPagUsadas_CodeSeg = divRoundUp (noffH.code.size, PageSize);
 	if (noffH.code.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el CS
@@ -113,8 +126,8 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		}
 	}
 
-    // Asignacion de memoria para el Data Segment
-    DEBUG ('a', "Used Data Segment asignation.\n");
+	// Asignacion de memoria para el Data Segment
+	DEBUG ('a', "Used Data Segment asignation.\n");
 	unsigned int cantPagUsadas_DataSeg = divRoundUp (noffH.initData.size, PageSize);
 	if (noffH.initData.size > 0) {
 		// Tomará las páginas asignadas al ejecutable, obtendrá la dirección física y se copiará el DS
@@ -125,16 +138,18 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		}
 	}
 
-    // Asignacion de espacio para los datos no inicializados
-    DEBUG('a', "Unitialized Data Segment asignation.\n");
-    unsigned int cantPagUsadas_UninitDataSeg = divRoundUp(noffH.uninitData.size, PageSize);
-    if(noffH.uninitData.size > 0){
-        for(unsigned int i=cantPagUsadas_DataSeg; i<cantPagUsadas_UninitDataSeg; ++i){
-            int pagina = pageTable[i].physicalPage;
-            DEBUG('a', "Page number: %i, Used byte: %i\n", i, PageSize*i);
-            executable->ReadAt(&(machine->mainMemory[pagina*PageSize]), PageSize, (PageSize*i + noffH.uninitData.inFileAddr));
-        }
-    }
+	// Asignacion de espacio para los datos no inicializados
+	DEBUG ('a', "Unitialized Data Segment asignation.\n");
+	unsigned int cantPagUsadas_UninitDataSeg = divRoundUp (noffH.uninitData.size, PageSize);
+	if (noffH.uninitData.size > 0) {
+		for (unsigned int i = cantPagUsadas_DataSeg; i < cantPagUsadas_UninitDataSeg; ++i) {
+			int pagina = pageTable[i].physicalPage;
+			DEBUG ('a', "Page number: %i, Used byte: %i\n", i, PageSize * i);
+			executable->ReadAt (& (machine->mainMemory[pagina * PageSize]), PageSize, (PageSize * i + noffH.uninitData.inFileAddr));
+		}
+	}
+#endif
+
 }
 
 //----------------------------------------------------------------------
