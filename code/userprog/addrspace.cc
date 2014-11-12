@@ -113,6 +113,7 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		// a separate page, we could set its
 		// pages to be read-only
 	}
+    //hola esto es una prueba
 
 	// Asignacion de memoria para el Code Segment
 	DEBUG ('a', "Code Segment asignation.\n");
