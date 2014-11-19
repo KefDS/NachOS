@@ -150,7 +150,6 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 		}
 	}
 #endif
-    //prueba
 
 }
 
