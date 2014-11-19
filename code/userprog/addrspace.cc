@@ -170,7 +170,11 @@ AddrSpace::AddrSpace (AddrSpace* fatherSpace) {
 			pageTable[i].physicalPage = fatherSpace->pageTable[i].physicalPage; // Comparten los mismas páginas
 		}
 		else {
+#ifdef VM
+            pageTable[i].physicalPage = -1;
+#else
 			pageTable[i].physicalPage = MiMapa->Find(); // Busca espacio libre para asignar el espacio de pila
+#endif
 			bzero (& (machine->mainMemory[pageTable[i].physicalPage * PageSize]), PageSize);
 		}
 		pageTable[i].valid = true;
