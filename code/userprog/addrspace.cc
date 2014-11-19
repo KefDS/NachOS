@@ -233,6 +233,10 @@ void AddrSpace::SaveState() {
 //      For now, tell the machine where to find the page table.
 //----------------------------------------------------------------------
 void AddrSpace::RestoreState() {
+	// "esto debe cambiarse porque sino "tlb" y "pageTable" de "machine"
+	// serían ambas distintos de nulo y falla unos de los "ASSERT" de "translate""
+#ifndef VM
 	machine->pageTable = pageTable;
 	machine->pageTableSize = numPages;
+#endif
 }
