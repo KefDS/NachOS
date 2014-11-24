@@ -245,3 +245,8 @@ void AddrSpace::RestoreState() {
 	machine->pageTableSize = numPages;
 #endif
 }
+
+void AddrSpace::load(int missingPage)
+{
+
+}

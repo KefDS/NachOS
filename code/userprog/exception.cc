@@ -604,7 +604,7 @@ void ExceptionHandler (ExceptionType which) {
 	// Memoria virtual
 	case PageFaultException:
 		DEBUG ('v', "PageFault Exception");
-		virtualMemory();
+        virtualMemory();
 		break;
 	// Errores
 	default:
