@@ -1,3 +1,12 @@
+/** Universidad de Costa Rica
+ * Escuela de Ciencias de la Computacion e Informatica
+ * Sistemas Operativos CI-1310
+ * Modificacion a NachOS
+ * Kevin Delgado Sandi  B22214
+ * Fabian Rodriguez Obando  B25695
+ * II Semestre 2014
+ */
+
 // addrspace.h
 //	Data structures to keep track of executing user programs
 //	(address spaces).
@@ -31,6 +40,9 @@ class AddrSpace {
 
 		void SaveState();			// Save/restore address space-specific
 		void RestoreState();		// info on a context switch
+
+        void load(int missingPage); //va a cargar la pagina que falta en memoria (si no esta en el TLB)
+
 
 	private:
 		TranslationEntry* pageTable;	// Assume linear page table translation
