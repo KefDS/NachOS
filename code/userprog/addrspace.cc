@@ -29,6 +29,11 @@
 #include "addrspace.h"
 #include "noff.h"
 
+#define CODESEG 0
+#define INITDATA 1
+#define UNINITDATA 2
+#define STACKSEG 3
+
 //----------------------------------------------------------------------
 // SwapHeader
 // 	Do little endian to big endian conversion on the bytes in the
@@ -75,7 +80,13 @@ AddrSpace::AddrSpace (OpenFile* executable) {
 
     // how big is address space?
     unsigned int size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;
-    // to leave room for the stack
+
+    //llenando el vector que dice cuantas paginas de cada segmento
+    vecTamaSegments[CODESEG] = divRoundUp(nuffH.code.size, PageSize);
+    vecTamaSegments[INITDATA] = divRoundUp(nuffH.initData.size, PageSize);
+    vecTamaSegments[UNINITDATA] = divRoundUp(nuffH.uninitData.size, PageSize);
+    vecTamaSegments[STACKSEG] = divRoundUp(UserStackSize, PageSize);
+
     numPages = divRoundUp (size, PageSize);
     size = numPages * PageSize;
 
@@ -190,6 +201,7 @@ AddrSpace::AddrSpace (AddrSpace* fatherSpace) {
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace() {
     delete pageTable;
+    delete [] vecTamaSegments;
 }
 
 //----------------------------------------------------------------------
@@ -266,20 +278,63 @@ void AddrSpace::RestoreState() {
 //----------------------------------------------------------------------
 void AddrSpace::load(int missingPage)
 {
+    int posReemplazo = machine->algoritmoReemplazo();   //selecciono cual reemplazar
     if(pageTable[missingPage].valid == false){  //no esta en la TLB entonces hay que hacer un despilingue
         //lado derecho del arbol del esquema
         if(pageTable[missingPage].dirty){
+            //si entra aca, estoy en el SWAP
             int posLibre = MiMapa->find();  //busco a ver si hay frames libres
             if(posLibre != -1){ //si hay uno libre
-
+                //readAt del SWAP para ponerlo en memoria
+                //lo cargo en la TLB
             }else{
-
+                //tengo que reemplazar de memoria
+                //algoritmo de reemplazo de RAM
+                //tengo que ver si lo que voy a quitar es codigo | datos para quitarlo sin problema
+                //si es datos sin inicializar | pila entonces tengo que guardarlo en el SWAP
+                //lo cargo en la TLB
             }
         }else{
-            //tengo q ver si es de codigo o de datos
+            //estoy en el ejecutable
+            int posActual = 0;
+            bool estoy = false;
+            for(int i=0; i<4 && estoy==false ; ++i){
+                if(missingPage >= posActual && missingPage < vecTamaSegments[i]){
+                    posActual = i;  //queda guardado en que segmento esta la pagina
+                    estoy = true;
+                }else{
+                    posActual += vecTamaSegments[i];
+                }
+            }
+
+            switch(posActual){
+            case CODESEG:
+                //no importa, no me tienen que guardar
+                //no hay break xq hace lo mismo que INITDATA
+            case INITDATA:
+                //busco campo en RAM (MiMapa)
+                //si esta esta llena, selecciono uno para sacarlo de ram
+                //      quita_deRAM()
+                //luego leo del ejecutable y lo pongo en la posicion libre
+                //actualizo pageTable, actualizo TLB
+                break;
+            default: //es pila o datos sin inicializar
+                //busco campo en RAM (MiMapa)
+                //si esta llena, quita_deRAM()
+                //      pone todo en cero
+
+                break;
+            }
         }
     }else{  // la pagina si esta cargada en memoria pero no en la TLB
-        int posReemplazo = machine->algoritmoReemplazo();   //selecciono cual reemplazar
-        machine->tlb[posReemplazo]=pageTable[missingPage];
+        if(machine->tlb[posReemplazo].valid){
+            //eliminar una entrada del PageTable
+            TranslationEntry* tmp = pageTable[machine->tlb[posReemplazo].virtualPage];
+            tmp.valid = machine->tlb[posReemplazo].valid;
+            tmp.readOnly = machine->tlb[posReemplazo].readOnly;
+            tmp.use = machine->tlb[posReemplazo].use;
+            tmp.dirty = machine->tlb[posReemplazo].dirty;
+        }
+        machine->tlb[posReemplazo]=pageTable[posReemplazo];  //*** HAY QUE REVISAR SI ESTA ASIGNACION ESTA BIEN HECHA ***
     }
 }
