@@ -228,6 +228,16 @@ void AddrSpace::InitRegisters() {
 //	For now, nothing!
 //----------------------------------------------------------------------
 void AddrSpace::SaveState() {
+#ifdef USE_TLB
+    for(int i=0; i<TLBSize; ++i){
+        if(machine->tlb[i].valid && machine->tlb[i].dirty){ //la pag esta sucia y valida?
+            pageTable[machine->tlb[i].virtualPage] = machine->tlb[i];   //la guarda en "cache"
+        }
+    }
+#else
+    pageTable = machine->pageTable;
+    numPages = machine->pageTableSize;
+#endif
 }
 
 //----------------------------------------------------------------------
@@ -240,7 +250,11 @@ void AddrSpace::SaveState() {
 void AddrSpace::RestoreState() {
     // "esto debe cambiarse porque sino "tlb" y "pageTable" de "machine"
     // serían ambas distintos de nulo y falla unos de los "ASSERT" de "translate""
-#ifndef VM
+#ifdef USE_TLB
+    for(int i=0; i<TLBSize; ++i){
+        machine->tlb[i].valid = false;
+    }
+#else
     machine->pageTable = pageTable;
     machine->pageTableSize = numPages;
 #endif
@@ -252,8 +266,8 @@ void AddrSpace::RestoreState() {
 //----------------------------------------------------------------------
 void AddrSpace::load(int missingPage)
 {
-    if(pageTable[missingPage].valid == false){  //no esta en la TLB entoces hay que hacer un despilingue
-        //lado derecho del arbol del esquema :)
+    if(pageTable[missingPage].valid == false){  //no esta en la TLB entonces hay que hacer un despilingue
+        //lado derecho del arbol del esquema
         if(pageTable[missingPage].dirty){
             int posLibre = MiMapa->find();  //busco a ver si hay frames libres
             if(posLibre != -1){ //si hay uno libre

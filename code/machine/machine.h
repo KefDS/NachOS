@@ -179,6 +179,8 @@ class Machine {
 		TranslationEntry* tlb;		// this pointer should be considered
 		// "read-only" to Nachos kernel code
 
+        int algoritmoRemplazo();  //va a retonar la posicion en la tlb
+
 		TranslationEntry* pageTable;
 		unsigned int pageTableSize;
 
