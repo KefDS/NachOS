@@ -34,6 +34,7 @@ SynchDisk*   synchDisk;
 #ifdef USER_PROGRAM	// requires either FILESYS or FILESYS_STUB
 Machine* machine;	// user program memory and registers
 BitMap* MiMapa;
+BitMap* SwapArea;
 #endif
 
 #ifdef NETWORK
@@ -181,6 +182,7 @@ Initialize (int argc, char** argv) {
 #ifdef USER_PROGRAM
 	machine = new Machine (debugUserProg);	// this must come first
 	MiMapa = new BitMap (NumPhysPages);
+    SwapArea = new BitMap(2*NumPhysPages);  //lo hace del doble de tamano de la memoria
 #endif
 
 #ifdef FILESYS
@@ -214,6 +216,7 @@ Cleanup() {
 #ifdef USER_PROGRAM
 	delete machine;
 	delete MiMapa;
+    delete SwapArea;
 #endif
 
 #ifdef FILESYS_NEEDED
