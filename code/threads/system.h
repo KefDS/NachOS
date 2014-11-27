@@ -35,8 +35,10 @@ extern Timer* timer;				// the hardware alarm clock
 #include "bitmap.h"
 
 extern Machine* machine;	// user program memory and registers
-extern BitMap* MiMapa;
-extern BitMap* SwapArea;
+extern BitMap* MiMapa; // Mapeo de memoria
+extern TraslationEntry* invertedTable; // Tabla invertida
+
+extern BitMap* SwapArea; // Mapeo de SWAP
 #endif
 
 #ifdef FILESYS_NEEDED 		// FILESYS or FILESYS_STUB 

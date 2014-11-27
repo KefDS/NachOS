@@ -182,7 +182,9 @@ Initialize (int argc, char** argv) {
 #ifdef USER_PROGRAM
 	machine = new Machine (debugUserProg);	// this must come first
 	MiMapa = new BitMap (NumPhysPages);
-    SwapArea = new BitMap(2*NumPhysPages);  //lo hace del doble de tamano de la memoria
+	invertedTable = new TraslationEntry (NumPhysPages);
+
+	SwapArea = new BitMap (2 * NumPhysPages); //lo hace del doble de tamano de la memoria
 #endif
 
 #ifdef FILESYS
@@ -216,7 +218,8 @@ Cleanup() {
 #ifdef USER_PROGRAM
 	delete machine;
 	delete MiMapa;
-    delete SwapArea;
+	delete SwapArea;
+	delete invertedTable;
 #endif
 
 #ifdef FILESYS_NEEDED
