@@ -43,12 +43,15 @@ class AddrSpace {
 
         void load(int missingPage); //va a cargar la pagina que falta en memoria (si no esta en el TLB)
 
+        int reemplazoRAM();   //elimina
+
 
 	private:
-		TranslationEntry* pageTable;	// Assume linear page table translation
-										// for now!
+        TranslationEntry* pageTable;
+        TranslationEntry* tablaInvertida;
 		unsigned int numPages;		// Number of pages in the virtual
 									// address space
+        int vecTamaSegments[] = new int[4];
 };
 
 #endif // ADDRSPACE_H

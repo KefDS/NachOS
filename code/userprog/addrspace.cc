@@ -100,6 +100,9 @@ AddrSpace::AddrSpace (OpenFile* executable) {
     // first, set up the translation
     pageTable = new TranslationEntry[numPages];
 
+    //hago la tabla invertida igual
+    tablaInvertida = new TranslationEntry[numPages];
+
     // Se asigna la realción página virtual <--> página física
 #ifdef VM
     //como es en memoria virtual, le pone la physicalPage en -1 y lo pone la página como inválida
@@ -201,6 +204,7 @@ AddrSpace::AddrSpace (AddrSpace* fatherSpace) {
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace() {
     delete pageTable;
+    delete tablaInvertida;
     delete [] vecTamaSegments;
 }
 
@@ -272,6 +276,8 @@ void AddrSpace::RestoreState() {
 #endif
 }
 
+
+
 //----------------------------------------------------------------------
 //AddrSpace::load
 //      Se encarga de cargar que falta en la TLB
@@ -335,6 +341,18 @@ void AddrSpace::load(int missingPage)
             tmp.use = machine->tlb[posReemplazo].use;
             tmp.dirty = machine->tlb[posReemplazo].dirty;
         }
-        machine->tlb[posReemplazo]=pageTable[posReemplazo];  //*** HAY QUE REVISAR SI ESTA ASIGNACION ESTA BIEN HECHA ***
+
+        machine->tlb[posReemplazo].virtualPage = pageTable[posReemplazo].virtualPage;
+        machine->tlb[posReemplazo].physicalPage = pageTable[posReemplazo].physicalPage;
+        machine->tlb[posReemplazo].valid = true;
+        machine->tlb[posReemplazo].readOnly = pageTable[posReemplazo].readOnly;
+        machine->tlb[posReemplazo].use = pageTable[posReemplazo].use;
+        machine->tlb[posReemplazo].dirty = pageTable[posReemplazo].dirty;
+
     }
+}
+
+int AddrSpace::reemplazoRAM()
+{
+
 }
