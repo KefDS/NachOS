@@ -59,7 +59,7 @@ class AddrSpace {
 
 		unsigned int numPages;		// Number of pages in the virtual
 									// address space
-        int vecTamaSegments[] = new int[4];
+        int* vecTamaSegments;
 };
 
 #endif // ADDRSPACE_H

@@ -69,6 +69,8 @@ static void SwapHeader (NoffHeader* noffH) {
 //	"executable" is the file containing the object code to load into memory
 //----------------------------------------------------------------------
 AddrSpace::AddrSpace (OpenFile* executable) {
+
+    vecTamaSegments = new int[4];
     NoffHeader noffH;
 
     executable->ReadAt ( (char*) &noffH, sizeof (noffH), 0);
@@ -82,9 +84,9 @@ AddrSpace::AddrSpace (OpenFile* executable) {
     unsigned int size = noffH.code.size + noffH.initData.size + noffH.uninitData.size + UserStackSize;
 
     //llenando el vector que dice cuantas paginas de cada segmento
-    vecTamaSegments[CODESEG] = divRoundUp(nuffH.code.size, PageSize);
-    vecTamaSegments[INITDATA] = divRoundUp(nuffH.initData.size, PageSize);
-    vecTamaSegments[UNINITDATA] = divRoundUp(nuffH.uninitData.size, PageSize);
+    vecTamaSegments[CODESEG] = divRoundUp(noffH.code.size, PageSize);
+    vecTamaSegments[INITDATA] = divRoundUp(noffH.initData.size, PageSize);
+    vecTamaSegments[UNINITDATA] = divRoundUp(noffH.uninitData.size, PageSize);
     vecTamaSegments[STACKSEG] = divRoundUp(UserStackSize, PageSize);
 
     numPages = divRoundUp (size, PageSize);
@@ -285,7 +287,7 @@ void AddrSpace::load(int missingPage)
         //lado derecho del arbol del esquema
         if(pageTable[missingPage].dirty){
             //si entra aca, estoy en el SWAP
-            int posLibre = MiMapa->find();  //busco a ver si hay frames libres
+            int posLibre = MiMapa->Find();  //busco a ver si hay frames libres
             if(posLibre != -1){ //si hay uno libre
                 //readAt del SWAP para ponerlo en memoria
                 //lo cargo en la TLB
@@ -310,18 +312,17 @@ void AddrSpace::load(int missingPage)
             }
 
             switch(posActual){
+            int posLibre;
             case CODESEG:
                 //no importa, no me tienen que guardar
                 //no hay break xq hace lo mismo que INITDATA
             case INITDATA:
-                //busco campo en RAM (MiMapa)
-                int posLibre = revisar_RAM();
+                posLibre = revisar_RAM();
                 //luego leo del ejecutable y lo pongo en la posicion libre
                 //actualizo pageTable, actualizo TLB
                 break;
             default: //es pila o datos sin inicializar
-                //busco campo en RAM (MiMapa)
-                int posLibre = revisar_RAM();
+                posLibre = revisar_RAM();
                 //      pone todo en cero
 
                 break;
@@ -331,10 +332,10 @@ void AddrSpace::load(int missingPage)
         if(machine->tlb[posReemplazo].valid){
             //eliminar una entrada del PageTable
             TranslationEntry* tmp = pageTable[machine->tlb[posReemplazo].virtualPage];
-            tmp.valid = machine->tlb[posReemplazo].valid;
-            tmp.readOnly = machine->tlb[posReemplazo].readOnly;
-            tmp.use = machine->tlb[posReemplazo].use;
-            tmp.dirty = machine->tlb[posReemplazo].dirty;
+            tmp->valid = machine->tlb[posReemplazo].valid;
+            tmp->readOnly = machine->tlb[posReemplazo].readOnly;
+            tmp->use = machine->tlb[posReemplazo].use;
+            tmp->dirty = machine->tlb[posReemplazo].dirty;
         }
 
         machine->tlb[posReemplazo].virtualPage = pageTable[posReemplazo].virtualPage;
@@ -350,7 +351,7 @@ void AddrSpace::load(int missingPage)
 
 int AddrSpace::revisar_RAM()
 {
-    int posLibre = MiMapa->find();
+    int posLibre = MiMapa->Find();
     if(posLibre == -1){
         posLibre = rand()%MemorySize;
     }

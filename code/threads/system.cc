@@ -183,7 +183,7 @@ Initialize (int argc, char** argv) {
 #ifdef USER_PROGRAM
 	machine = new Machine (debugUserProg);	// this must come first
 	MiMapa = new BitMap (NumPhysPages);
-	invertedTable = new TraslationEntry (NumPhysPages);
+    invertedTable = new TranslationEntry [NumPhysPages];
 
 	SwapArea = new BitMap (2 * NumPhysPages); //lo hace del doble de tamano de la memoria
 #endif

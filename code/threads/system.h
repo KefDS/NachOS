@@ -36,7 +36,7 @@ extern Timer* timer;				// the hardware alarm clock
 
 extern Machine* machine;	// user program memory and registers
 extern BitMap* MiMapa; // Mapeo de memoria
-extern TraslationEntry* invertedTable; // Tabla invertida
+extern TranslationEntry* invertedTable; // Tabla invertida
 
 extern BitMap* SwapArea; // Mapeo de SWAP
 #endif
