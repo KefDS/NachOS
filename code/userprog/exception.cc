@@ -317,40 +317,40 @@ void Nachos_Read() {    //System call # 6
 	int cantidadTotalBytesLeidos = 0;
 	semMutexAux.P();   // lock
 	switch (idFileNachOS) {
-	//lecturas de consola
-	case ConsoleOutput:
-		machine->WriteRegister (2, ERROR);
-		printf ("ERROR: User can't read from console output.\n");
-		break;
-	case ConsoleInput:
-		cantidadTotalBytesLeidos = read (0, bufferRead, size);  // lee en el stdin
-		machine->WriteRegister (2, cantidadTotalBytesLeidos);
-		stats->numConsoleCharsRead += cantidadTotalBytesLeidos;
-		break;
-	case ConsoleError:
-		printf ("ERROR: Console error %d.\n", -1);
-		break;
-	default:
-		//lectura de archivos
-		if (currentThread->m_filesTable->isOpened (idFileNachOS)) { //esta abierto?
-			int idUnix = currentThread->m_filesTable->getUnixHandle (idFileNachOS);
-			cantidadTotalBytesLeidos = read (idUnix, bufferRead, size);   //lee con el read de UNIX
+		//lecturas de consola
+		case ConsoleOutput:
+			machine->WriteRegister (2, ERROR);
+			printf ("ERROR: User can't read from console output.\n");
+			break;
+		case ConsoleInput:
+			cantidadTotalBytesLeidos = read (0, bufferRead, size);  // lee en el stdin
 			machine->WriteRegister (2, cantidadTotalBytesLeidos);
-			// Copia el contenido del buffer local al buffer proporcionado por el usuario
-			bool flag = true;
-			for (int i = 0; i < cantidadTotalBytesLeidos && flag; ++i) {
-				int chTmp = (int) bufferRead[i];
-				machine->WriteMem (machine->ReadRegister (4) + i, 1, chTmp);
-				if ( (char) chTmp == '\0') {
-					flag = false;
+			stats->numConsoleCharsRead += cantidadTotalBytesLeidos;
+			break;
+		case ConsoleError:
+			printf ("ERROR: Console error %d.\n", -1);
+			break;
+		default:
+			//lectura de archivos
+			if (currentThread->m_filesTable->isOpened (idFileNachOS)) { //esta abierto?
+				int idUnix = currentThread->m_filesTable->getUnixHandle (idFileNachOS);
+				cantidadTotalBytesLeidos = read (idUnix, bufferRead, size);   //lee con el read de UNIX
+				machine->WriteRegister (2, cantidadTotalBytesLeidos);
+				// Copia el contenido del buffer local al buffer proporcionado por el usuario
+				bool flag = true;
+				for (int i = 0; i < cantidadTotalBytesLeidos && flag; ++i) {
+					int chTmp = (int) bufferRead[i];
+					machine->WriteMem (machine->ReadRegister (4) + i, 1, chTmp);
+					if ( (char) chTmp == '\0') {
+						flag = false;
+					}
 				}
+				stats->numDiskReads++;
 			}
-			stats->numDiskReads++;
-		}
-		else {
-			machine->WriteRegister (2, ERROR);  //se quiere leer de un archivo que no esta abierto
-			printf ("ERROR: File doesn't exist.\n");
-		}
+			else {
+				machine->WriteRegister (2, ERROR);  //se quiere leer de un archivo que no esta abierto
+				printf ("ERROR: File doesn't exist.\n");
+			}
 	}
 	semMutexAux.V(); // release
 	returnFromSystemCall();
@@ -371,26 +371,26 @@ void Nachos_Write() {   // System call 7
 	mapeoMemoria (4, bufferWrite); // Deja el contenido que se tiene que escribir en bufferWrite
 	semMutexAux.P();   // lock
 	switch (idFileNachOS) {
-	case ConsoleInput:	// User could not write to standard input
-		machine->WriteRegister (2, ERROR);
-		break;
-	case ConsoleOutput:
-		bufferWrite[ size ] = '\0';
-		stats->numConsoleCharsWritten += size;
-		write (1, bufferWrite, size); // Escribe en stdout
-		break;
-	case ConsoleError: // This trick permits to write integers to console
-		printf ("%d\n", machine->ReadRegister (4));
-		break;
-	default:
-		if (currentThread->m_filesTable->isOpened (idFileNachOS)) {
-			write (currentThread->m_filesTable->getUnixHandle (idFileNachOS), bufferWrite, size);
-			machine->WriteRegister (2, cantCaracteres);
-			stats->numDiskWrites++;
-		}
-		else {
+		case ConsoleInput:	// User could not write to standard input
 			machine->WriteRegister (2, ERROR);
-		}
+			break;
+		case ConsoleOutput:
+			bufferWrite[ size ] = '\0';
+			stats->numConsoleCharsWritten += size;
+			write (1, bufferWrite, size); // Escribe en stdout
+			break;
+		case ConsoleError: // This trick permits to write integers to console
+			printf ("%d\n", machine->ReadRegister (4));
+			break;
+		default:
+			if (currentThread->m_filesTable->isOpened (idFileNachOS)) {
+				write (currentThread->m_filesTable->getUnixHandle (idFileNachOS), bufferWrite, size);
+				machine->WriteRegister (2, cantCaracteres);
+				stats->numDiskWrites++;
+			}
+			else {
+				machine->WriteRegister (2, ERROR);
+			}
 	}
 	semMutexAux.V(); // Release
 	returnFromSystemCall(); // Update the PC registers
@@ -531,10 +531,10 @@ void Nachos_SemWait() {     //System call # 14
 
 
 // Memoria Virtual
-void virtualMemory(){
+void virtualMemory() {
 	// Recibe el número de memoria faltante cuando hay pageFault.
 	// La página lógica sería la dirección logica/tamaño de página
-	int pag_Faltante = machine->ReadRegister(BadVAddrReg)/pageSize;
+	int pag_Faltante = machine->ReadRegister (BadVAddrReg);
 	DEBUG ('v', "Pagina faltante: %i", pag_Faltante);
 
 	// Cuando se trata de revisar las página es mejor hacer los métodos en Adrresspace
@@ -546,70 +546,70 @@ void ExceptionHandler (ExceptionType which) {
 	DEBUG ('a', "Entre en exception handler con type %d y ExceptionType %d\n", type, which);
 
 	switch (which) {
-	// System call´s
-	case SyscallException:
-		switch (type) {
-		case SC_Halt:
-			Nachos_Halt();              // System call # 0
-			returnFromSystemCall();
+		// System call´s
+		case SyscallException:
+			switch (type) {
+				case SC_Halt:
+					Nachos_Halt();              // System call # 0
+					returnFromSystemCall();
+					break;
+				case SC_Exit:
+					Nachos_Exit();              //System call # 1
+					break;
+				case SC_Exec:
+					Nachos_Exec();              //System call # 2
+					break;
+				case SC_Join:
+					Nachos_Join();              //System call # 3
+					break;
+				case SC_Create:
+					Nachos_Create();            //System call # 4
+					break;
+				case SC_Open:
+					Nachos_Open();             // System call # 5
+					break;
+				case SC_Read:
+					Nachos_Read();              //System call # 6
+					break;
+				case SC_Write:
+					Nachos_Write();             // System call # 7
+					break;
+				case SC_Close:
+					Nachos_Close();             //System call # 8
+					break;
+				case SC_Fork:                   //System call # 9
+					Nachos_Fork();
+					break;
+				case SC_Yield:                  //System call # 10
+					Nachos_Yield();
+					break;
+				case SC_SemCreate:              //System call # 11
+					Nachos_SemCreate();
+					break;
+				case SC_SemDestroy:             //System call # 12
+					Nachos_SemDestroy();
+					break;
+				case SC_SemSignal:              //System call # 13
+					Nachos_SemSignal();
+					break;
+				case SC_SemWait:                //System call # 14
+					Nachos_SemWait();
+					break;
+				default:
+					printf ("Second switch-> unexpected exception %d\n", which);
+					ASSERT (false);
+					break;
+			}
 			break;
-		case SC_Exit:
-			Nachos_Exit();              //System call # 1
+		// Memoria virtual
+		case PageFaultException:
+			DEBUG ('v', "PageFault Exception");
+			virtualMemory();
 			break;
-		case SC_Exec:
-			Nachos_Exec();              //System call # 2
-			break;
-		case SC_Join:
-			Nachos_Join();              //System call # 3
-			break;
-		case SC_Create:
-			Nachos_Create();            //System call # 4
-			break;
-		case SC_Open:
-			Nachos_Open();             // System call # 5
-			break;
-		case SC_Read:
-			Nachos_Read();              //System call # 6
-			break;
-		case SC_Write:
-			Nachos_Write();             // System call # 7
-			break;
-		case SC_Close:
-			Nachos_Close();             //System call # 8
-			break;
-		case SC_Fork:                   //System call # 9
-			Nachos_Fork();
-			break;
-		case SC_Yield:                  //System call # 10
-			Nachos_Yield();
-			break;
-		case SC_SemCreate:              //System call # 11
-			Nachos_SemCreate();
-			break;
-		case SC_SemDestroy:             //System call # 12
-			Nachos_SemDestroy();
-			break;
-		case SC_SemSignal:              //System call # 13
-			Nachos_SemSignal();
-			break;
-		case SC_SemWait:                //System call # 14
-			Nachos_SemWait();
-			break;
+		// Errores
 		default:
-			printf ("Second switch-> unexpected exception %d\n", which);
+			printf ("First switch -> unexpected exception %d\n", which);
 			ASSERT (false);
 			break;
-		}
-		break;
-	// Memoria virtual
-	case PageFaultException:
-		DEBUG ('v', "PageFault Exception");
-        virtualMemory();
-		break;
-	// Errores
-	default:
-		printf ("First switch -> unexpected exception %d\n", which);
-		ASSERT (false);
-		break;
 	}
 }

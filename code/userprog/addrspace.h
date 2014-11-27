@@ -42,24 +42,25 @@ class AddrSpace {
 		void SaveState();			// Save/restore address space-specific
 		void RestoreState();		// info on a context switch
 
-        /**
-         * @brief load
-         * @param missingPage
-         */
-        void load(int missingPage); //va a cargar la pagina que falta en memoria (si no esta en el TLB)
+		/**
+		 * @brief load
+		 * @param missingPage
+		 */
+		void load (int missingAddr); //va a cargar la pagina que falta en memoria (si no esta en el TLB)
 
 	private:
-        TranslationEntry* pageTable;
+		TranslationEntry* pageTable;
+		static TranslationEntry** invertedTable; // Tabla invertida, solo hay una
 
-        /**
-         * @brief revisar_RAM se encarga de revisar si hay campo disponible en memoria, si no encuentra entonces saca a alguien para ocupar su campo
-         * @return direccion del campo libre en memoria.
-         */
-        int revisar_RAM(); //va a buscar campo disponible en memoria, si no encuentra entonces llama al algoritmo_reemplazoRAM
+		/**
+		 * @brief revisar_RAM se encarga de revisar si hay campo disponible en memoria, si no encuentra entonces saca a alguien para ocupar su campo
+		 * @return direccion del campo libre en memoria.
+		 */
+		int revisar_RAM(); //va a buscar campo disponible en memoria, si no encuentra entonces llama al algoritmo_reemplazoRAM
 
 		unsigned int numPages;		// Number of pages in the virtual
-									// address space
-        int* vecTamaSegments;
+		// address space
+		int* vecTamaSegments;
 };
 
 #endif // ADDRSPACE_H

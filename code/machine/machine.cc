@@ -35,20 +35,20 @@ static const char* exceptionNames[] = { "no exception", "syscall",
 //----------------------------------------------------------------------
 
 static void CheckEndian() {
-    union checkit {
-        char charword[4];
-        unsigned int intword;
-    } check;
+	union checkit {
+		char charword[4];
+		unsigned int intword;
+	} check;
 
-    check.charword[0] = 1;
-    check.charword[1] = 2;
-    check.charword[2] = 3;
-    check.charword[3] = 4;
+	check.charword[0] = 1;
+	check.charword[1] = 2;
+	check.charword[2] = 3;
+	check.charword[3] = 4;
 
 #ifdef HOST_IS_BIG_ENDIAN
-    ASSERT (check.intword == 0x01020304);
+	ASSERT (check.intword == 0x01020304);
 #else
-    ASSERT (check.intword == 0x04030201);
+	ASSERT (check.intword == 0x04030201);
 #endif
 }
 
@@ -61,28 +61,28 @@ static void CheckEndian() {
 //----------------------------------------------------------------------
 
 Machine::Machine (bool debug) {
-    int i;
+	int i;
 
-    for (i = 0; i < NumTotalRegs; i++) {
-        registers[i] = 0;
-    }
-    mainMemory = new char[MemorySize];
-    for (i = 0; i < MemorySize; i++) {
-        mainMemory[i] = 0;
-    }
+	for (i = 0; i < NumTotalRegs; i++) {
+		registers[i] = 0;
+	}
+	mainMemory = new char[MemorySize];
+	for (i = 0; i < MemorySize; i++) {
+		mainMemory[i] = 0;
+	}
 #ifdef USE_TLB
-    tlb = new TranslationEntry[TLBSize]; // En este caso el TLBSize es 4
-    for (i = 0; i < TLBSize; i++) {
-        tlb[i].valid = false;
-    }
-    pageTable = NULL;
+	tlb = new TranslationEntry[TLBSize]; // En este caso el TLBSize es 4
+	for (i = 0; i < TLBSize; i++) {
+		tlb[i].valid = false;
+	}
+	pageTable = NULL;
 #else	// use linear page table
-    tlb = NULL;
-    pageTable = NULL;
+	tlb = NULL;
+	pageTable = NULL;
 #endif
 
-    singleStep = debug;
-    CheckEndian();
+	singleStep = debug;
+	CheckEndian();
 }
 
 //----------------------------------------------------------------------
@@ -91,10 +91,10 @@ Machine::Machine (bool debug) {
 //----------------------------------------------------------------------
 
 Machine::~Machine() {
-    delete [] mainMemory;
-    if (tlb != NULL) {
-        delete [] tlb;
-    }
+	delete [] mainMemory;
+	if (tlb != NULL) {
+		delete [] tlb;
+	}
 }
 
 //----------------------------------------------------------------------
@@ -108,14 +108,14 @@ Machine::~Machine() {
 //----------------------------------------------------------------------
 
 void Machine::RaiseException (ExceptionType which, int badVAddr) {
-    DEBUG ('m', "Exception: %s\n", exceptionNames[which]);
+	DEBUG ('m', "Exception: %s\n", exceptionNames[which]);
 
-    //  ASSERT(interrupt->getStatus() == UserMode);
-    registers[BadVAddrReg] = badVAddr;
-    DelayedLoad (0, 0);			// finish anything in progress
-    interrupt->setStatus (SystemMode);
-    ExceptionHandler (which);		// interrupts are enabled at this point
-    interrupt->setStatus (UserMode);
+	//  ASSERT(interrupt->getStatus() == UserMode);
+	registers[BadVAddrReg] = badVAddr;
+	DelayedLoad (0, 0);			// finish anything in progress
+	interrupt->setStatus (SystemMode);
+	ExceptionHandler (which);		// interrupts are enabled at this point
+	interrupt->setStatus (UserMode);
 }
 
 //----------------------------------------------------------------------
@@ -129,37 +129,37 @@ void Machine::RaiseException (ExceptionType which, int badVAddr) {
 //----------------------------------------------------------------------
 
 void Machine::Debugger() {
-    char* buf = new char[80];
-    int num;
+	char* buf = new char[80];
+	int num;
 
-    interrupt->DumpState();
-    DumpState();
-    printf ("%d> ", stats->totalTicks);
-    fflush (stdout);
-    fgets (buf, 80, stdin);
-    if (sscanf (buf, "%d", &num) == 1) {
-        runUntilTime = num;
-    }
-    else {
-        runUntilTime = 0;
-        switch (*buf) {
-        case '\n':
-            break;
+	interrupt->DumpState();
+	DumpState();
+	printf ("%d> ", stats->totalTicks);
+	fflush (stdout);
+	fgets (buf, 80, stdin);
+	if (sscanf (buf, "%d", &num) == 1) {
+		runUntilTime = num;
+	}
+	else {
+		runUntilTime = 0;
+		switch (*buf) {
+			case '\n':
+				break;
 
-        case 'c':
-            singleStep = false;
-            break;
+			case 'c':
+				singleStep = false;
+				break;
 
-        case '?':
-            printf ("Machine commands:\n");
-            printf ("    <return>  execute one instruction\n");
-            printf ("    <number>  run until the given timer tick\n");
-            printf ("    c         run until completion\n");
-            printf ("    ?         print help message\n");
-            break;
-        }
-    }
-    delete [] buf;
+			case '?':
+				printf ("Machine commands:\n");
+				printf ("    <return>  execute one instruction\n");
+				printf ("    <number>  run until the given timer tick\n");
+				printf ("    c         run until completion\n");
+				printf ("    ?         print help message\n");
+				break;
+		}
+	}
+	delete [] buf;
 }
 
 //----------------------------------------------------------------------
@@ -169,35 +169,35 @@ void Machine::Debugger() {
 //----------------------------------------------------------------------
 
 void Machine::DumpState() {
-    int i;
+	int i;
 
-    printf ("Machine registers:\n");
-    for (i = 0; i < NumGPRegs; i++)
-        switch (i) {
-        case StackReg:
-            printf ("\tSP(%d):\t0x%x%s", i, registers[i],
-                    ( (i % 4) == 3) ? "\n" : "");
-            break;
+	printf ("Machine registers:\n");
+	for (i = 0; i < NumGPRegs; i++)
+		switch (i) {
+			case StackReg:
+				printf ("\tSP(%d):\t0x%x%s", i, registers[i],
+						( (i % 4) == 3) ? "\n" : "");
+				break;
 
-        case RetAddrReg:
-            printf ("\tRA(%d):\t0x%x%s", i, registers[i],
-                    ( (i % 4) == 3) ? "\n" : "");
-            break;
+			case RetAddrReg:
+				printf ("\tRA(%d):\t0x%x%s", i, registers[i],
+						( (i % 4) == 3) ? "\n" : "");
+				break;
 
-        default:
-            printf ("\t%d:\t0x%x%s", i, registers[i],
-                    ( (i % 4) == 3) ? "\n" : "");
-            break;
-        }
+			default:
+				printf ("\t%d:\t0x%x%s", i, registers[i],
+						( (i % 4) == 3) ? "\n" : "");
+				break;
+		}
 
-    printf ("\tHi:\t0x%x", registers[HiReg]);
-    printf ("\tLo:\t0x%x\n", registers[LoReg]);
-    printf ("\tPC:\t0x%x", registers[PCReg]);
-    printf ("\tNextPC:\t0x%x", registers[NextPCReg]);
-    printf ("\tPrevPC:\t0x%x\n", registers[PrevPCReg]);
-    printf ("\tLoad:\t0x%x", registers[LoadReg]);
-    printf ("\tLoadV:\t0x%x\n", registers[LoadValueReg]);
-    printf ("\n");
+	printf ("\tHi:\t0x%x", registers[HiReg]);
+	printf ("\tLo:\t0x%x\n", registers[LoReg]);
+	printf ("\tPC:\t0x%x", registers[PCReg]);
+	printf ("\tNextPC:\t0x%x", registers[NextPCReg]);
+	printf ("\tPrevPC:\t0x%x\n", registers[PrevPCReg]);
+	printf ("\tLoad:\t0x%x", registers[LoadReg]);
+	printf ("\tLoadV:\t0x%x\n", registers[LoadValueReg]);
+	printf ("\n");
 }
 
 //---------------------------------------------------------------------
@@ -205,23 +205,19 @@ void Machine::DumpState() {
 //      Se encarga de retornar el indice que indica la posicion en la
 //      TLB que va a reemplazar
 //---------------------------------------------------------------------
-int Machine::algoritmo_ReemplazoTLB()
-{
-    int i;
+int Machine::algoritmo_ReemplazoTLB() {
+	int i;
+	// En primer lugar, tratamos de buscar alguna entrada no valida.
+	for (i = 0; i < TLBSize && (tlb[i].valid); ++i) {
+	}
 
-    // En primer lugar, tratamos de buscar alguna entrada no valida.
+	// Si todas las entradas son validas, elegimos una al azar.
+	if (i == TLBSize) {
+		i = rand() % TLBSize;
+	}
 
-    for (i = 0; i < TLBSize && (tlb[i].valid); i++){
-    }
-    // Si todas las entradas son validas, elegimos una al azar.
-
-    if (i == TLBSize){
-        i = rand() % TLBSize;
-    }
-
-    // Retornamos la entrada candidata a reemplazar.
-
-    return i;
+	// Retornamos la entrada candidata a reemplazar.
+	return i;
 }
 
 //----------------------------------------------------------------------
@@ -230,13 +226,13 @@ int Machine::algoritmo_ReemplazoTLB()
 //----------------------------------------------------------------------
 
 int Machine::ReadRegister (int num) {
-    ASSERT ( (num >= 0) && (num < NumTotalRegs));
-    return registers[num];
+	ASSERT ( (num >= 0) && (num < NumTotalRegs));
+	return registers[num];
 }
 
 void Machine::WriteRegister (int num, int value) {
-    ASSERT ( (num >= 0) && (num < NumTotalRegs));
-    // DEBUG('m', "WriteRegister %d, value %d\n", num, value);
-    registers[num] = value;
+	ASSERT ( (num >= 0) && (num < NumTotalRegs));
+	// DEBUG('m', "WriteRegister %d, value %d\n", num, value);
+	registers[num] = value;
 }
 
