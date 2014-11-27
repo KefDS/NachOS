@@ -100,9 +100,6 @@ AddrSpace::AddrSpace (OpenFile* executable) {
     // first, set up the translation
     pageTable = new TranslationEntry[numPages];
 
-    //hago la tabla invertida igual
-    tablaInvertida = new TranslationEntry[numPages];
-
     // Se asigna la realción página virtual <--> página física
 #ifdef VM
     //como es en memoria virtual, le pone la physicalPage en -1 y lo pone la página como inválida
@@ -204,7 +201,6 @@ AddrSpace::AddrSpace (AddrSpace* fatherSpace) {
 //----------------------------------------------------------------------
 AddrSpace::~AddrSpace() {
     delete pageTable;
-    delete tablaInvertida;
     delete [] vecTamaSegments;
 }
 
@@ -284,7 +280,7 @@ void AddrSpace::RestoreState() {
 //----------------------------------------------------------------------
 void AddrSpace::load(int missingPage)
 {
-    int posReemplazo = machine->algoritmoReemplazo();   //selecciono cual reemplazar
+    int posReemplazo = machine->algoritmo_ReemplazoTLB();   //selecciono cual reemplazar en la TLB
     if(pageTable[missingPage].valid == false){  //no esta en la TLB entonces hay que hacer un despilingue
         //lado derecho del arbol del esquema
         if(pageTable[missingPage].dirty){
@@ -319,14 +315,13 @@ void AddrSpace::load(int missingPage)
                 //no hay break xq hace lo mismo que INITDATA
             case INITDATA:
                 //busco campo en RAM (MiMapa)
-                //si esta esta llena, selecciono uno para sacarlo de ram
-                //      quita_deRAM()
+                int posLibre = revisar_RAM();
                 //luego leo del ejecutable y lo pongo en la posicion libre
                 //actualizo pageTable, actualizo TLB
                 break;
             default: //es pila o datos sin inicializar
                 //busco campo en RAM (MiMapa)
-                //si esta llena, quita_deRAM()
+                int posLibre = revisar_RAM();
                 //      pone todo en cero
 
                 break;
@@ -352,7 +347,13 @@ void AddrSpace::load(int missingPage)
     }
 }
 
-int AddrSpace::reemplazoRAM()
-{
 
+int AddrSpace::revisar_RAM()
+{
+    int posLibre = MiMapa->find();
+    if(posLibre == -1){
+        posLibre = rand()%MemorySize;
+    }
+
+    return posLibre;
 }

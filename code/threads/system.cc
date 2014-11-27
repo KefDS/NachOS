@@ -35,6 +35,7 @@ SynchDisk*   synchDisk;
 Machine* machine;	// user program memory and registers
 BitMap* MiMapa;
 BitMap* SwapArea;
+TranslationEntry* invertedTable;
 #endif
 
 #ifdef NETWORK

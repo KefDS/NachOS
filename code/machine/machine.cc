@@ -205,7 +205,7 @@ void Machine::DumpState() {
 //      Se encarga de retornar el indice que indica la posicion en la
 //      TLB que va a reemplazar
 //---------------------------------------------------------------------
-int Machine::algoritmoRemplazo()
+int Machine::algoritmo_ReemplazoTLB()
 {
     int i;
 

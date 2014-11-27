@@ -29,6 +29,7 @@
 
 class AddrSpace {
 	public:
+
 		AddrSpace (OpenFile* executable);	// Create an address space
 		AddrSpace (AddrSpace* fatherSpace);	//para uso del Fork
 		// initializing it with the program
@@ -41,14 +42,21 @@ class AddrSpace {
 		void SaveState();			// Save/restore address space-specific
 		void RestoreState();		// info on a context switch
 
+        /**
+         * @brief load
+         * @param missingPage
+         */
         void load(int missingPage); //va a cargar la pagina que falta en memoria (si no esta en el TLB)
-
-        int reemplazoRAM();   //elimina
-
 
 	private:
         TranslationEntry* pageTable;
-        TranslationEntry* tablaInvertida;
+
+        /**
+         * @brief revisar_RAM se encarga de revisar si hay campo disponible en memoria, si no encuentra entonces saca a alguien para ocupar su campo
+         * @return direccion del campo libre en memoria.
+         */
+        int revisar_RAM(); //va a buscar campo disponible en memoria, si no encuentra entonces llama al algoritmo_reemplazoRAM
+
 		unsigned int numPages;		// Number of pages in the virtual
 									// address space
         int vecTamaSegments[] = new int[4];
