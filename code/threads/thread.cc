@@ -63,7 +63,12 @@ Thread::~Thread() {
 	ASSERT (this != currentThread);
 	if (stack != NULL) {
 		DeallocBoundedArray ( (char*) stack, StackSize * sizeof (HostMemoryAddress));
-	}
+    }
+}
+
+void Thread::getThreadName(char *bufferLlenar)
+{
+    strcpy(bufferLlenar, name);
 }
 
 //----------------------------------------------------------------------

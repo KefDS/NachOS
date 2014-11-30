@@ -49,8 +49,14 @@ class AddrSpace {
 		void load (int missingAddr); //va a cargar la pagina que falta en memoria (si no esta en el TLB)
 
 	private:
-		TranslationEntry* pageTable;
-		static TranslationEntry** invertedTable; // Tabla invertida, solo hay una
+        TranslationEntry* pageTable;
+
+void syncTLB(int posReemplazo);
+        /**
+         * @brief actualizaTLB
+         * @param posReemplazo
+         */
+        void actualizaTLB(int posReemplazo);
 
 		/**
 		 * @brief revisar_RAM se encarga de revisar si hay campo disponible en memoria, si no encuentra entonces saca a alguien para ocupar su campo

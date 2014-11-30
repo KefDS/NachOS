@@ -280,24 +280,41 @@ void AddrSpace::RestoreState() {
 //----------------------------------------------------------------------
 void AddrSpace::load (int missingAddr) {
 	int missingPage = missingAddr/PageSize;
+    NoffHeader noffH;
 	// Como la TLB va a estar llena, se necesita reemplazar una pocisión de la TLB
 	int posReemplazo = machine->algoritmo_ReemplazoTLB();   // Selecciona cual posición de la TLB reemplazar
 	if (pageTable[missingPage].valid == false) { // La página faltante no está en memoria
 		//lado derecho del arbol del esquema
 
-		// Sí la página está sucia, esta está en el SWAP
+        // Sí la página está sucia, está en el SWAP
 		if (pageTable[missingPage].dirty) {
-			int posLibre = MiMapa->Find();  //busco a ver si hay frames libres
+            int posLibre = revisar_RAM();  //busco a ver si hay frames libres
 			if (posLibre != -1) { //si hay uno libre
-				//readAt del SWAP para ponerlo en memoria
-				//lo cargo en la TLB
+                OpenFile *swapFile = fileSystem->Open("SWAP");
+                int pos_Swap = SwapArea->Find();
+                //readAt del SWAP para ponerlo en memoria
+                swapFile->ReadAt(&(machine->mainMemory[missingPage*PageSize]), PageSize, pos_Swap*PageSize);
+                pageTable[missingPage].physicalPage = missingAddr;
+                pageTable[missingPage].valid = true;
+
+                //ponemos en la tabla invertida
+                invertedTable[posLibre] = &pageTable[missingPage];
+                //lo cargo en la TLB
+                actualizaTLB(posReemplazo);
 			}
 			else {
-				//tengo que reemplazar de memoria
-				//algoritmo de reemplazo de RAM
-				//tengo que ver si lo que voy a quitar es codigo | datos para quitarlo sin problema
-				//si es datos sin inicializar | pila entonces tengo que guardarlo en el SWAP
+                //le aviso al dueño temporal del frame que ya no lo es
+                invertedTable[posReemplazo]->valid = false;
+                if(invertedTable[posReemplazo]->dirty){//hay cambio, tengo q meterlo en el SWAP
+                    OpenFile *swapFile = fileSystem->Open("SWAP");
+                    int pos_Swap = SwapArea->Find();
+                    swapFile->WriteAt(&(machine->mainMemory[missingAddr*PageSize]), PageSize, pos_Swap*PageSize);
+                    invertedTable[posReemplazo]->physicalPage = pos_Swap;
+                }else{
+                    invertedTable[posReemplazo]->physicalPage = -1;
+                }
 				//lo cargo en la TLB
+                actualizaTLB(posReemplazo);
 			}
 		}
 		else {
@@ -321,6 +338,15 @@ void AddrSpace::load (int missingAddr) {
 				//no hay break xq hace lo mismo que INITDATA
 				case INITDATA:
 					posLibre = revisar_RAM();
+                    if(posLibre != -1){
+                        char procesName[32];
+                        currentThread->getThreadName(procesName);
+                        OpenFile *executable = fileSystem->Open(procesName);
+                        executable->ReadAt(&(machine->mainMemory[posLibre*PageSize]), PageSize, noffH.code.inFileAddr+PageSize*missingPage);
+
+                    }else{
+
+                    }
 					//luego leo del ejecutable y lo pongo en la posicion libre
 					//actualizo pageTable, actualizo TLB
 					break;
@@ -343,14 +369,24 @@ void AddrSpace::load (int missingAddr) {
 			tmp->dirty = machine->tlb[posReemplazo].dirty;
 		}
 
-		machine->tlb[posReemplazo].virtualPage = pageTable[posReemplazo].virtualPage;
-		machine->tlb[posReemplazo].physicalPage = pageTable[posReemplazo].physicalPage;
-		machine->tlb[posReemplazo].valid = true;
-		machine->tlb[posReemplazo].readOnly = pageTable[posReemplazo].readOnly;
-		machine->tlb[posReemplazo].use = pageTable[posReemplazo].use;
-		machine->tlb[posReemplazo].dirty = pageTable[posReemplazo].dirty;
+        actualizaTLB(posReemplazo);
 
-	}
+    }
+}
+
+void AddrSpace::syncTLB(int posReemplazo)
+{
+
+}
+
+void AddrSpace::actualizaTLB(int posReemplazo)
+{
+    machine->tlb[posReemplazo].virtualPage = pageTable[posReemplazo].virtualPage;
+    machine->tlb[posReemplazo].physicalPage = pageTable[posReemplazo].physicalPage;
+    machine->tlb[posReemplazo].valid = true;
+    machine->tlb[posReemplazo].readOnly = pageTable[posReemplazo].readOnly;
+    machine->tlb[posReemplazo].use = pageTable[posReemplazo].use;
+    machine->tlb[posReemplazo].dirty = pageTable[posReemplazo].dirty;
 }
 
 
